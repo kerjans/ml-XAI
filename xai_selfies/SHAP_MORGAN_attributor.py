@@ -36,9 +36,12 @@ def weights_morgan(smiles, coefficients_total):
     Chem.SanitizeMol(mol)#to keep the explicit hydrogens
 
     bit_info = {}
-    fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048, bitInfo=bit_info)
-    #generator = GetMorganGenerator(radius=2, fpSize=2048, bitInfoMap=bit_info)
-    #fp = generator.GetFingerprint(mol)
+    #fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048, bitInfo=bit_info)
+    generator = GetMorganGenerator(radius=2, fpSize=2048)
+    ao = AllChem.AdditionalOutput()
+    ao.CollectBitInfoMap()
+    fp = generator.GetFingerprint(mol, additionalOutput=ao)
+    bit_info = ao.GetBitInfoMap()
 
     atom_weights = calculate_atom_weights(mol, coefficients_total, bit_info)
 

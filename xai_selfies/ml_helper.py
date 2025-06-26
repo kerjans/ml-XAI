@@ -257,6 +257,7 @@ def get_best_reg_model(model_types, ALLfeatureCOLUMS, train, Target_Column_Name,
         for feature in ALLfeatureCOLUMS:
             model, r2, R2, MAE, RMSE = hp_search_helper(model_arc,train,Target_Column_Name,[str(feature)])
             results.append({'Feature': feature,'Model_Type': model_arc,'Model': model,'r2': r2,'R2': R2,'MAE': MAE,'RMSE': RMSE})
+    
 
     results_df = pd.DataFrame(results)
     best_model_row = results_df.loc[results_df['MAE'].idxmin()]
