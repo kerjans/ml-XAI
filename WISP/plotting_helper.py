@@ -4,6 +4,7 @@ import math
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import Draw
+from rdkit.Chem.Draw import SimilarityMaps
 from IPython.display import Image
 from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 import os
@@ -194,50 +195,39 @@ def generate_heatmap(data, index, output_dir, smiles_column, attribution_column,
     Red is positive while blue is negative (to be consistant with PIXIE)
     '''
     smiles = data[smiles_column][index]
-    attributions = data[attribution_column][index]#.fillna(0)#ast.literal_eval()
+    attributions = data[attribution_column][index]
     attributions = [0 if isinstance(x, float) and math.isnan(x) else x for x in attributions]
     mol_id = data[ID_column][index]
 
-    #vmax = data[attribution_column].abs().max() * 0.7
-    #evaluated_series = data[attribution_column].apply(ast.literal_eval)
     if task_type == 'regression':
         vmax = data[attribution_column].apply(lambda lst: max(map(abs, lst))).max() * 0.7
     if task_type == 'classification':
         vmax = 0.7
-    #evaluated_series = data[attribution_column]
-    #vmax = evaluated_series.apply(lambda lst: max(map(abs, list(lst)))).max() * 0.7
-    #vmax = evaluated_series.apply(lambda lst: max(map(abs, lst))).max() * 0.7
     vmin = -vmax
 
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
     Chem.SanitizeMol(mol)#to keep the explicit hydrogens
 
     # Draw similarity map
-    atom_colors = {}
-    for atom in mol.GetAtoms():
-        idx = atom.GetIdx()
-        weight = attributions[idx] if idx < len(attributions) else 0.0  # Default weight as 0.0 if atom index not found
-        color, cmap = get_color(weight, '#10384f', '#ffffff', '#9C0D38', vmin, vmax)
-        atom_colors[idx] = color
-        atom.SetProp("_displayColor", ','.join(map(str, color)))
-    
-    d = Draw.MolDraw2DCairo(1800, 1800)
-    d.DrawMolecule(mol,highlightAtoms=list(atom_colors.keys()),highlightAtomColors=atom_colors)#, highlightBonds=[]
+    draw2d = Draw.MolDraw2DCairo(900, 900)
+    d = GetSimilarityMapFromWeightsWithScale(mol, attributions, draw2d, '#10384f', '#9C0D38', vmin, vmax)
     d.FinishDrawing()
 
     # Create a color bar
     fig, ax = plt.subplots(figsize=(6, 1))
     fig.subplots_adjust(bottom=0.5)
 
+    colors = ['#10384f', '#ffffff', '#9C0D38'] 
+    cmap = LinearSegmentedColormap.from_list("custom_cmap", colors)
     norm = TwoSlopeNorm(vmin=vmin, vcenter=0.0, vmax=vmax)
-    cbar = ColorbarBase(ax, norm=norm, cmap=cmap, orientation='horizontal')  #
+    cbar = ColorbarBase(ax, norm=norm, cmap=cmap, orientation='horizontal')
 
     tick_positions = [vmin, vmax]
     tick_labels = [vmin, vmax]
     cbar.set_ticks(tick_positions)
     cbar.set_ticklabels(tick_labels)
 
-    plt.savefig(os.path.join(output_dir, 'Legend.png'), dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(output_dir, attribution_column + '_Legend.png'), dpi=300, bbox_inches='tight')
     plt.close()
 
     # Define and write output path
@@ -247,6 +237,43 @@ def generate_heatmap(data, index, output_dir, smiles_column, attribution_column,
         f.write(d.GetDrawingText())
 
     return Image(filename=output_path)
+
+
+def GetSimilarityMapFromWeightsWithScale(mol, weights, draw2d, hex_color1, hex_color2, overall_min:float, overall_max:float, colorMap=None, *args,**kwargs, ):
+    assert colorMap is None, "custom colorMap may not be specified"
+
+    weights = list(weights)
+    weights = [min(max(w,overall_min),overall_max) for w in weights]
+
+    this_max = max(weights)
+    this_min = min(weights)
+
+    color1 = np.array(mcolors.to_rgb(hex_color1))
+    color2 = np.array(mcolors.to_rgb(hex_color2))
+    white = np.array([1,1,1])
+    
+    scale_min = this_min / np.array(overall_min)
+    scale_max = this_max / np.array(overall_max)
+    
+    if scale_min < 0:
+        scale_min = 0
+    if scale_max < 0:
+        scale_max = 0
+    if scale_min > 1:
+        scale_min = 1
+    if scale_max > 1:
+        scale_max = 1
+    
+    color1 = color1 * scale_min + white * (1 - scale_min)
+    color2 = color2 * scale_max + white * (1 - scale_max)
+       
+    custom_colors = [color1, '#ffffff', color2]
+    custom_cmap = LinearSegmentedColormap.from_list("custom", custom_colors, N=256)
+    
+    d = SimilarityMaps.GetSimilarityMapFromWeights(mol,list(weights),draw2d,colorMap=custom_cmap,
+                                    *args,**kwargs,
+                                   )
+    return d
 
 def get_color(weight, neg_color, neut_color, pos_color, vmin, vmax):
     """
