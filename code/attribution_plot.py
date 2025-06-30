@@ -1,7 +1,6 @@
 import numpy as np
 from pathlib import Path
 import shutil
-from smal.io import random_fle
 from rdkit.Chem import Draw
 from pathlib import Path
 from rdkit import rdBase
@@ -104,9 +103,6 @@ def GetSimilarityMapFromWeightsWithScale(mol, weights, draw2d, overall_min:float
     this_max = max(weights)
     this_min = min(weights)
 
-    
-    
-    
     green = np.array([0,0,1,]) 
     red = np.array([1,0,0,])
     white = np.array([1,1,1])
