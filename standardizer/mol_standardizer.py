@@ -290,4 +290,10 @@ class Standardizer(object):
         except (TypeError, ValueError, AttributeError) as e:
             return None, e
         return smi_clean, None
+    
+def deduplicate_with_mean_target(data, Target_Column_Name):
+    first_rows = data.sort_values('smiles_std').drop_duplicates('smiles_std', keep='first')
+    mean_targets = data.groupby('smiles_std')[Target_Column_Name].mean().reset_index()
+    result = pd.merge(first_rows.drop(columns=Target_Column_Name), mean_targets, on='smiles_std')
+    return result
 
