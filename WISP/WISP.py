@@ -105,6 +105,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
                     normalize=True, 
                     sanitize_mol=True)
     data["smiles_std"] = data[Smiles_Column_Name].apply(lambda smi: std(smi)[0]) 
+    data = filter_duplicates(data, 'smiles_std', Target_Column_Name)
 
     #save data in smi format
     data[['smiles_std', 'ID', Target_Column_Name]].to_csv(working_dir + "data.smi", sep='\t', index=False, header=False)

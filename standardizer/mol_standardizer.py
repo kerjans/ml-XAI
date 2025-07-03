@@ -291,9 +291,15 @@ class Standardizer(object):
             return None, e
         return smi_clean, None
     
-def deduplicate_with_mean_target(data, Target_Column_Name):
-    first_rows = data.sort_values('smiles_std').drop_duplicates('smiles_std', keep='first')
-    mean_targets = data.groupby('smiles_std')[Target_Column_Name].mean().reset_index()
-    result = pd.merge(first_rows.drop(columns=Target_Column_Name), mean_targets, on='smiles_std')
-    return result
+def filter_duplicates(df, duplicate_identifier, Target_Column_Name):
+    duplicates = df[df.duplicated(duplicate_identifier, keep=False)]
+    indices_to_keep = []
+    for smiles, group in duplicates.groupby(duplicate_identifier):
+        if len(group[Target_Column_Name].unique()) == 1:
+            # If all targets are the same, keep the first occurrence
+            indices_to_keep.append(group.index[0])
+    # Drop all duplicates and keep only the desired entries
+    filtered_df = df.drop_duplicates(subset=duplicate_identifier, keep=False)
+    filtered_df = pd.concat([filtered_df, df.loc[indices_to_keep]]).reset_index(drop=True)
+    return filtered_df
 
