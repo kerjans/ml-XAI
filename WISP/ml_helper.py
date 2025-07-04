@@ -1,5 +1,8 @@
 import numpy as np
 import pickle
+import shutil
+
+import chemprop
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -27,6 +30,7 @@ from sklearn.linear_model import Lasso
 from sklearn.svm import SVR
 
 from WISP.plotting_helper import *
+from WISP.chemprop import *
 
 def get_features(data, CLOUMS):
     """
@@ -253,11 +257,13 @@ def features_and_class_model_types(data):
 def get_best_reg_model(model_types, ALLfeatureCOLUMS, train, Target_Column_Name, working_dir):
     results = []
 
+    r2, R2, MAE, RMSE = train_GNN(train, 'smiles_std', Target_Column_Name, working_dir)#############################
+    model_GNN = SklChemprop(problem_type="regression", max_epochs=20, Smiles_Column_Name='smiled_std', Target_Column_Name=Target_Column_Name, working_dir=working_dir)##################
+    results.append({'Feature': 'smiles_std','Model_Type': 'SklChemprop','Model': model_GNN,'r2': r2,'R2': R2,'MAE': MAE,'RMSE': RMSE})##################
     for model_arc in model_types:          
         for feature in ALLfeatureCOLUMS:
             model, r2, R2, MAE, RMSE = hp_search_helper(model_arc,train,Target_Column_Name,[str(feature)])
             results.append({'Feature': feature,'Model_Type': model_arc,'Model': model,'r2': r2,'R2': R2,'MAE': MAE,'RMSE': RMSE})
-    
 
     results_df = pd.DataFrame(results)
     best_model_row = results_df.loc[results_df['MAE'].idxmin()]
@@ -267,6 +273,12 @@ def get_best_reg_model(model_types, ALLfeatureCOLUMS, train, Target_Column_Name,
     print('Feature: ', best_model_row['Feature'])
     results_df.to_csv(working_dir + "Grid-Search.csv", index=False)
 
+    #delete checkpoints folder
+    if model.__class__.__name__ != "SklChemprop":
+        checkpoints_path = os.path.join(working_dir, 'checkpoints')
+        if os.path.isdir(checkpoints_path):
+            shutil.rmtree(checkpoints_path)
+
     #pick feature function
     if best_model_row['Feature'] == 'Morgan_Fingerprint 2048Bit 2rad':
         feature_function = get_morgan_fingerprint
@@ -274,8 +286,9 @@ def get_best_reg_model(model_types, ALLfeatureCOLUMS, train, Target_Column_Name,
         feature_function = get_RDK_fingerprint
     if best_model_row['Feature'] == 'MACCS_Fingerprint':
         feature_function = get_MACCS_fingerprint
+    if best_model_row['Feature'] == 'smiles_std':#############################
+        feature_function = identity#######################
 
-    #train model on trining set
     featureCOLUMS = [best_model_row['Feature']]
 
     return model, feature_function, featureCOLUMS
@@ -369,9 +382,10 @@ def get_and_train_class_model(train, test, Target_Column_Name, target_test, work
 def train_and_evaluate_reg_model(model, train, test, featureCOLUMS, Target_Column_Name, target_test, working_dir):
 
     #train on whole training set
-    prep_train = get_features(train, featureCOLUMS)
-    target_train = train[Target_Column_Name].values
-    model.fit(prep_train, target_train)
+    if model.__class__.__name__ != "SklChemprop":
+        prep_train = get_features(train, featureCOLUMS)
+        target_train = train[Target_Column_Name].values
+        model.fit(prep_train, target_train)
 
     #performance on test set
     prep_test = get_features(test, featureCOLUMS)
@@ -390,7 +404,7 @@ def train_and_evaluate_reg_model(model, train, test, featureCOLUMS, Target_Colum
     #print/plot results
     print('Performance on testset(r2, R2, MAE, RMSE, Maximal Error, MSE):',r2,';',R2,';',MAE,';',rmse,';',max_err,';', mse)
 
-    r2 = np.corrcoef(predictions, target_test)[0,1]**2
+    r2 = np.corrcoef(predictions.flatten(), target_test.flatten())[0,1]**2###################################################
     plot_2D(['r$^2$ = ' + str(f"{r2:.2f}")], 'upper left', predictions , target_test,
             'predicted', 'experimental', working_dir + '20-80-split-true-pred.png', '#A43341', 
             include_line=False, line_style='None')

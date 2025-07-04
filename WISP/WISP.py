@@ -4,6 +4,11 @@ import sys
 import os
 import contextlib
 
+import warnings
+
+warnings.filterwarnings("ignore", module="lightning.pytorch")
+warnings.filterwarnings("ignore", module="sklearn")
+
 from standardizer.mol_standardizer import *
 from WISP.ml_helper import *
 from WISP.SHAP_MORGAN_attributor import *
