@@ -37,6 +37,20 @@ class SklChemprop:
         self.Target_Column_Name = Target_Column_Name
         self.working_dir = working_dir
 
+        self.mpnn = None
+        self._load_latest_checkpoint()
+
+    def _load_latest_checkpoint(self):
+        checkpoint_dir = self.working_dir + 'checkpoints/'
+        if not os.path.exists(checkpoint_dir):#skipps loading if there is no checkpoint file
+            return
+        ckpt_files = glob(os.path.join(checkpoint_dir, '*.ckpt'))
+        if not ckpt_files:#skipps loading if there is no checkpoint file
+            return
+        # Get most recent checkpoint and set as self model
+        latest_ckpt = max(ckpt_files, key=os.path.getmtime)
+        self.mpnn = models.MPNN.load_from_checkpoint(latest_ckpt) 
+
     def _df_to_loader(self,df):
         md = [data.MoleculeDatapoint.from_smi(smis, np.array(y).reshape(1,1)) for smis, y in zip(df.smiles.tolist(), df.y.tolist())]
         #ds = [data.MoleculeDataset(md[0][i], self.featurizer) for i in range(len(df))]
@@ -131,7 +145,7 @@ class SklChemprop:
         #loader etc from previous
         with torch.inference_mode():
             trainer = pl.Trainer(
-                logger=None,
+                logger=False,
                 enable_progress_bar=False,
                 accelerator="cpu",
                 devices=1
@@ -167,7 +181,7 @@ def get_features(data, CLOUMS):
 def train_GNN(train, Smiles_Column_Name, Target_Column_Name, working_dir):
     model_GNN = SklChemprop(problem_type="regression", max_epochs=20, Smiles_Column_Name=Smiles_Column_Name, Target_Column_Name=Target_Column_Name, working_dir=working_dir)
     model_GNN.fit(train)
-
+    
     prep_smiles = get_features(train, [Smiles_Column_Name])
 
     predictions = model_GNN.predict(prep_smiles)

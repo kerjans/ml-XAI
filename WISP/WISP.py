@@ -81,7 +81,7 @@ def suppress_output():
             sys.stdout = old_stdout
             sys.stderr = old_stderr
 
-def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Column_Name, model_available=False):
+def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Column_Name, model_available=None, use_GNN=True):
     '''
     If you have your model available please place it in the working_dir as model.pkl
     Input as comma seperated file
@@ -128,7 +128,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             test, target_test, train = split_data(data, Target_Column_Name, working_dir)
             
             #find and train best model
-            model, feature_function, featureCOLUMS  = get_best_reg_model(model_types, ALLfeatureCOLUMS, train, Target_Column_Name, working_dir)
+            model, feature_function, featureCOLUMS  = get_best_reg_model(model_types, ALLfeatureCOLUMS, train, Target_Column_Name, working_dir, use_GNN)
 
             train_and_evaluate_reg_model(model, train, test, featureCOLUMS, Target_Column_Name, target_test, working_dir)
 
@@ -156,7 +156,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
     #data['Dropout Attributions'] = data['smiles_std'].apply(lambda s: attribute_atoms_dropout(s, model, feature_function))
     #data['Path Attributions'] = data['smiles_std'].apply(lambda s: attribute_atoms_paths(s, model, feature_function))
 
-    print("XSMILES Attribution done")
+    print("Atom Attribution done")
     
     #SHAP explainer
     if "Morgan" in inspect.getsource(feature_function):#to only use on Morgan
@@ -185,6 +185,9 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
         color_coding.append('#758ECD')
         print("RDKit Attribution done")
 
+    #save attribution data
+    data.to_csv(working_dir + "Attribution_Data.csv", index=False)
+
     #create heatmaps
     directory = working_dir + "HeatMaps"
     if not os.path.exists(directory):
@@ -195,9 +198,6 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             output_dir = directory + '/'
             generate_heatmap(data, index, output_dir, 'smiles_std', attr_method, 'ID', task_type)
     print("Heatmaps have been created")
-
-    #save attribution data
-    data.to_csv(working_dir + "Attribution_Data.csv", index=False)
 
     #Creat MMP database
     colums_to_keep = Attribution_Colums + [Target_Column_Name]

@@ -197,6 +197,7 @@ def generate_heatmap(data, index, output_dir, smiles_column, attribution_column,
     smiles = data[smiles_column][index]
     attributions = data[attribution_column][index]
     attributions = [0 if isinstance(x, float) and math.isnan(x) else x for x in attributions]
+    attributions = [float(x) for x in attributions]
     mol_id = data[ID_column][index]
 
     if task_type == 'regression':
@@ -207,6 +208,9 @@ def generate_heatmap(data, index, output_dir, smiles_column, attribution_column,
 
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
     Chem.SanitizeMol(mol)#to keep the explicit hydrogens
+    
+    if mol.GetNumAtoms() < 2: # to avoid errors later
+        return
 
     # Draw similarity map
     draw2d = Draw.MolDraw2DCairo(900, 900)

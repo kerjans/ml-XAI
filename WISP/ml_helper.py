@@ -254,12 +254,13 @@ def features_and_class_model_types(data):
             GaussianProcessClassifier()]
     return data, ALLfeatureCOLUMS, model_types
 
-def get_best_reg_model(model_types, ALLfeatureCOLUMS, train, Target_Column_Name, working_dir):
+def get_best_reg_model(model_types, ALLfeatureCOLUMS, train, Target_Column_Name, working_dir, use_GNN):
     results = []
 
-    r2, R2, MAE, RMSE = train_GNN(train, 'smiles_std', Target_Column_Name, working_dir)#############################
-    model_GNN = SklChemprop(problem_type="regression", max_epochs=20, Smiles_Column_Name='smiled_std', Target_Column_Name=Target_Column_Name, working_dir=working_dir)##################
-    results.append({'Feature': 'smiles_std','Model_Type': 'SklChemprop','Model': model_GNN,'r2': r2,'R2': R2,'MAE': MAE,'RMSE': RMSE})##################
+    if use_GNN is True:
+        r2, R2, MAE, RMSE = train_GNN(train, 'smiles_std', Target_Column_Name, working_dir)#############################
+        model_GNN = SklChemprop(problem_type="regression", max_epochs=20, Smiles_Column_Name='smiled_std', Target_Column_Name=Target_Column_Name, working_dir=working_dir)##################
+        results.append({'Feature': 'smiles_std','Model_Type': 'SklChemprop','Model': model_GNN,'r2': r2,'R2': R2,'MAE': MAE,'RMSE': RMSE})##################
     for model_arc in model_types:          
         for feature in ALLfeatureCOLUMS:
             model, r2, R2, MAE, RMSE = hp_search_helper(model_arc,train,Target_Column_Name,[str(feature)])
