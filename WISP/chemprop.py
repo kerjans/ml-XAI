@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from lightning import pytorch as pl
 from pathlib import Path
 
+from lightning.pytorch import seed_everything
+
 from chemprop import data, featurizers, models, nn
 from chemprop.nn import metrics
 from chemprop.models import multi
@@ -44,7 +46,7 @@ class SklChemprop:
         checkpoint_dir = self.working_dir + 'checkpoints/'
         if not os.path.exists(checkpoint_dir):#skipps loading if there is no checkpoint file
             return
-        ckpt_files = glob(os.path.join(checkpoint_dir, '*.ckpt'))
+        ckpt_files = glob(os.path.join(checkpoint_dir, 'best*.ckpt'))
         if not ckpt_files:#skipps loading if there is no checkpoint file
             return
         # Get most recent checkpoint and set as self model
@@ -86,8 +88,8 @@ class SklChemprop:
         val_dset = data.MoleculeDataset(val_data[0], featurizer)
         val_dset.normalize_targets(scaler)
 
-        train_loader = data.build_dataloader(train_dset, num_workers=num_workers)
-        val_loader = data.build_dataloader(val_dset, num_workers=num_workers, shuffle=False)
+        train_loader = data.build_dataloader(train_dset, num_workers=num_workers, seed=6)
+        val_loader = data.build_dataloader(val_dset, num_workers=num_workers, shuffle=False, seed=6)
 
         mp = nn.BondMessagePassing()
         agg = nn.MeanAggregation()
@@ -108,6 +110,8 @@ class SklChemprop:
         mode="min",  # Save the checkpoint with the lowest validation loss (minimization objective)
         save_last=True,  # Always save the most recent checkpoint, even if it's not the best
         )
+        
+        seed_everything(6, workers=True)
 
         trainer = pl.Trainer(
             logger=False,
@@ -117,6 +121,7 @@ class SklChemprop:
             devices=1,
             max_epochs=self.max_epochs, # number of epochs to train for
             callbacks=[checkpointing], # Use the configured checkpoint callback
+            deterministic=True,
         )
 
         trainer.fit(mpnn, train_loader, val_loader)
@@ -133,7 +138,7 @@ class SklChemprop:
         #preprocess data
         featurizer = featurizers.SimpleMoleculeMolGraphFeaturizer()
         test_dset = data.MoleculeDataset(all_data, featurizer)
-        test_loader = data.build_dataloader(test_dset, num_workers=num_workers, shuffle=False)
+        test_loader = data.build_dataloader(test_dset, num_workers=num_workers, shuffle=False, seed=6)
 
         
         # Get most recent checkpoint
@@ -142,13 +147,16 @@ class SklChemprop:
         latest_ckpt = max(ckpt_files, key=os.path.getmtime)
         mpnn = models.MPNN.load_from_checkpoint(latest_ckpt)
 
+        seed_everything(6, workers=True)
+
         #loader etc from previous
         with torch.inference_mode():
             trainer = pl.Trainer(
                 logger=False,
                 enable_progress_bar=False,
                 accelerator="cpu",
-                devices=1
+                devices=1,
+                deterministic=True
             )
             test_preds = trainer.predict(mpnn, test_loader)
         test_preds = np.concatenate(test_preds, axis=0)

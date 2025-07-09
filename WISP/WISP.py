@@ -9,6 +9,7 @@ import warnings
 warnings.filterwarnings("ignore", module="lightning.pytorch")
 warnings.filterwarnings("ignore", module="sklearn")
 
+
 from standardizer.mol_standardizer import *
 from WISP.ml_helper import *
 from WISP.SHAP_MORGAN_attributor import *
@@ -251,6 +252,10 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
                 MMP_accuracy(train_set, col)
                 print('For the test set:')
                 MMP_accuracy(test_set, col)
+        
+        #save data
+        train_set.to_csv(working_dir + "Complete_Data_Training.csv", index=False)
+        test_set.to_csv(working_dir + "Complete_Data_Test.csv", index=False)
 
 
     #get MMP accuracy
