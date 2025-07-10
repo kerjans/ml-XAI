@@ -138,7 +138,57 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             /* Subtle shadow */
         }
+
+        button {
+            padding: 12px;
+            /* Increased padding */
+            margin-bottom: 5px;
+            border: 2px solid #4CAF50;
+            /* Green border */
+            border-radius: 4px;
+            font-size: 16px;
+            /* Larger font size */
+            transition: border-color 0.3s;
+        }
     </style>
+    <script>
+        // see: https://stackoverflow.com/questions/58676967/load-textfile-via-drag-and-drop-on-textarea
+        // and: https://www.w3schools.com/html/html5_draganddrop.asp
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        const drop = function (evt) {
+            window.my_event = evt;
+            evt.preventDefault();
+            var file = evt.dataTransfer.files[0];
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                const txt = e.target.result;
+                //if (evt.target.id == "modelSetting") {
+                updateDataset([txt]);
+                //}
+            };
+            reader.readAsText(file, "UTF-8");
+        };
+        const updateDataset = function (dataset) {
+            fetch("DatasetHandler", {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ "csv": dataset })
+            }).then(res => res.json()).then(res => {
+                console.log("Request complete! response:", res);
+                const status = res["status"];
+                if (status == "success") {
+                    const cp = document.getElementById("result-div");
+                    cp.innerText = res["message"];
+                }
+                else {
+                    alert("failure could not parse input!");
+                }
+            });
+        };
+    </script>
 </head>
 
 <body>
@@ -150,7 +200,9 @@
                         <span class="tooltip">ℹ️<span class="tooltip-text">Enter a path or
                                 URL to a dataset in CSV format.</span></span>
                     </label>
-                    <input type="text" id="dataset" placeholder="Enter dataset URL or path">
+                    <div ondrop="drop(event)" ondragover="allowDrop(event)" id="datasetSetting" class="fileDrop">
+                        <button style="background-color: white;"> Drop CSV here ↓ </button>
+                    </div>
                 </div>
                 <div class="input-group">
                     <label for="id-column">Specify ID Column
@@ -174,7 +226,9 @@
                     <input type="text" id="target-column" placeholder="Enter target column name">
                 </div>
             </div>
-            <div class="right-column">Right Column (remaining space)</div>
+            <div class="right-column">
+                <div id="result-div"> </div>
+            </div>
         </div>
     </div>
 </body>

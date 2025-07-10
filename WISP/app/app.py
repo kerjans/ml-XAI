@@ -1,11 +1,6 @@
 
 from pathlib import Path
 import asyncio
-from molfactual.app.dataset_handler import DatasetHandler
-from molfactual.app.main_handler import MainHandler
-from molfactual.app.conversion_handlers import ExplainJTHandler, SmilesInputHandler
-from molfactual.app.predictor_selection_handler import PredictorSelectionHandler
-from pathlib import Path
 import json
 import io
 import base64
@@ -135,22 +130,9 @@ class DatasetHandler(BaseHandler):
             req = json.loads(self.request.body)
 
             print("req:",req)
-            ds_contents_user = req["dataset_contents"]
-            ds_names_user = req["dataset_names"]
-            active_ds = req["active_dataset"]
+            csv = StringIO(req["csv"][0])
+            df = resilient_read_csv(csv)
 
-
-            set_active_dataset(active_dataset=active_ds)
-
-            for ds_content,ds_name in zip(ds_contents_user,ds_names_user):
-                register_dataset(dataset_name=ds_name,dataset_content=ds_content)
-
-            ds = get_user_datasets()
-            if ds["active_dataset"]:
-                csv = StringIO(ds["contents"][ds["names"].index(ds["active_dataset"])])
-                df = resilient_read_csv(csv)
-            else:
-                df = None
             if df is not None:
                 smiles = resilient_read_smiles(df)
                 target = resilient_read_target(df)
@@ -165,8 +147,6 @@ class DatasetHandler(BaseHandler):
                 {
                     "smiles": smiles,
                     "target": target,
-                    "dataset_names": ds["names"], 
-                    "active_dataset": ds["active_dataset"],
                     "status": "success"
                 }
             )
