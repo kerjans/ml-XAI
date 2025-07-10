@@ -4,9 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centered Div Example</title>
+    <title>Molecular XAI</title>
     <style>
-        /* Import Google Fonts for modern sans-serif font */
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
 
         body {
@@ -22,9 +21,9 @@
 
         .container {
             width: 1024px;
-            /* Typical width of an iPad in landscape */
+            /* Typical width of a tablet in landscape */
             height: 768px;
-            /* Typical height of an iPad in landscape */
+            /* Typical height of a tablet in landscape */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -171,6 +170,8 @@
             };
             reader.readAsText(file, "UTF-8");
         };
+
+        IMAGES = [];
         const updateDataset = function (dataset) {
             fetch("DatasetHandler", {
                 method: "POST",
@@ -180,14 +181,35 @@
                 console.log("Request complete! response:", res);
                 const status = res["status"];
                 if (status == "success") {
-                    const cp = document.getElementById("result-div");
-                    cp.innerText = res["message"];
+
+                    // SIMPLE SHOWCASE FOR NOW: JUST SHOW MOLECULES
+                    IMAGES = res["images"];
+
+                    refreshImagesOnPage();
                 }
                 else {
                     alert("failure could not parse input!");
                 }
             });
         };
+
+        // pagination handling of images
+        PAGE_SIZE = 4
+        CURRENT_PAGE = 0;
+        const refreshImagesOnPage = function () {
+            const cp = document.getElementById("result-div");
+            cp.innerHTML = "";
+            const startP = CURRENT_PAGE * PAGE_SIZE;
+            for (var q = 0; q < PAGE_SIZE; q++) {
+                const image = IMAGES[q + startP];
+                const imgElement = document.createElement('img');
+                //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
+                //document.getElementById("pngImage").src = "data:image/png;base64," + image;
+                imgElement.src = "data:image/png;base64," + image;
+                cp.appendChild(imgElement);
+            }
+        }
+
     </script>
 </head>
 

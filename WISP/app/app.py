@@ -123,6 +123,18 @@ def resilient_read_target(df):
             return df[target_cols[0]].tolist()
 
 
+
+from rdkit import Chem
+from rdkit.Chem import Draw
+from PIL import Image
+from copy import deepcopy
+
+def mol_to_image(mol, width=300, height=300) -> "Image":
+    rand_fle = "tmp.jpg"
+    Draw.MolToImageFile(mol, filename=rand_fle, format="JPG", size=(width, height))
+    img = Image.open(rand_fle)
+    return deepcopy(img)
+
 class DatasetHandler(BaseHandler):
     @log_function_call
     def post(self):
@@ -138,15 +150,26 @@ class DatasetHandler(BaseHandler):
                 target = resilient_read_target(df)
                 if not target or (smiles and len(target) != len(smiles)):
                     target = ["N/A" for _ in smiles]
+                    
+                images = []
+                for smi in smiles:
+                    output = io.BytesIO()
+                    img = mol_to_image(Chem.MolFromSmiles(smi))
+                    img.save(output, format="png")
+                    hex_data = output.getvalue()
+                    img64 = base64.b64encode(hex_data).decode("utf-8")
+                    images.append(img64)
             else:
                 smiles = []
                 target = []
+                images = []
 
             
             resp = json.dumps(
                 {
                     "smiles": smiles,
                     "target": target,
+                    "images": images,
                     "status": "success"
                 }
             )
