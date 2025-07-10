@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MolecularXAI</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            /* Typical tablet dimensions */
+            width: 1024px;
+            height: 768px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .inner-div {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .left-column {
+            width: 500px;
+            background-color: #4CAF50;
+            /* Green */
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .right-column {
+            flex-grow: 1;
+            /* Takes up remaining space */
+            background-color: #2196F3;
+            /* Blue */
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="inner-div">
+            <div class="left-column">Left Column (500px)</div>
+            <div class="right-column">Right Column (remaining space)</div>
+        </div>
+    </div>
+</body>
+
+</html>
