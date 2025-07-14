@@ -1,4 +1,5 @@
 import chemprop
+import random
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -28,6 +29,10 @@ from glob import glob
 import logging
 logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
 
+random.seed(6)
+np.random.seed(6)
+torch.manual_seed(6)
+torch.use_deterministic_algorithms(True)
 
 class SklChemprop:
 
@@ -44,7 +49,7 @@ class SklChemprop:
 
     def _load_latest_checkpoint(self):
         checkpoint_dir = self.working_dir + 'checkpoints/'
-        if not os.path.exists(checkpoint_dir):#skipps loading if there is no checkpoint file
+        if not os.path.exists(checkpoint_dir):#skipps loading if there is no checkpoint dir
             return
         ckpt_files = glob(os.path.join(checkpoint_dir, 'best*.ckpt'))
         if not ckpt_files:#skipps loading if there is no checkpoint file
@@ -88,7 +93,7 @@ class SklChemprop:
         val_dset = data.MoleculeDataset(val_data[0], featurizer)
         val_dset.normalize_targets(scaler)
 
-        train_loader = data.build_dataloader(train_dset, num_workers=num_workers, seed=6)
+        train_loader = data.build_dataloader(train_dset, num_workers=num_workers, shuffle=False, seed=6)
         val_loader = data.build_dataloader(val_dset, num_workers=num_workers, shuffle=False, seed=6)
 
         mp = nn.BondMessagePassing()
@@ -99,7 +104,9 @@ class SklChemprop:
         ffn = nn.RegressionFFN(output_transform=output_transform)
 
         batch_norm = True
-        metric_list = [metrics.R2Score(), metrics.MAE()]#[nn.metrics.RMSE(), nn.metrics.MAE()]
+        metric_list = [metrics.MAE()]#[nn.metrics.RMSE(), nn.metrics.R2score()]
+
+        seed_everything(6, workers=True)
         mpnn = models.MPNN(mp, agg, ffn, batch_norm, metric_list)
 
         # Checkpointing
@@ -110,14 +117,12 @@ class SklChemprop:
         mode="min",  # Save the checkpoint with the lowest validation loss (minimization objective)
         save_last=True,  # Always save the most recent checkpoint, even if it's not the best
         )
-        
-        seed_everything(6, workers=True)
 
         trainer = pl.Trainer(
             logger=False,
             enable_checkpointing=True, # Use `True` if you want to save model checkpoints. The checkpoints will be saved in the `checkpoints` folder.
             enable_progress_bar=False,
-            accelerator="auto",
+            accelerator="cpu",
             devices=1,
             max_epochs=self.max_epochs, # number of epochs to train for
             callbacks=[checkpointing], # Use the configured checkpoint callback
@@ -125,6 +130,7 @@ class SklChemprop:
         )
 
         trainer.fit(mpnn, train_loader, val_loader)
+        self._load_latest_checkpoint()
 
     
     def predict(self, smiles):#df_input:"pd.Dataframe"
@@ -140,15 +146,6 @@ class SklChemprop:
         test_dset = data.MoleculeDataset(all_data, featurizer)
         test_loader = data.build_dataloader(test_dset, num_workers=num_workers, shuffle=False, seed=6)
 
-        
-        # Get most recent checkpoint
-        checkpoint_dir = self.working_dir + 'checkpoints/'
-        ckpt_files = glob(os.path.join(checkpoint_dir, '*.ckpt'))
-        latest_ckpt = max(ckpt_files, key=os.path.getmtime)
-        mpnn = models.MPNN.load_from_checkpoint(latest_ckpt)
-
-        seed_everything(6, workers=True)
-
         #loader etc from previous
         with torch.inference_mode():
             trainer = pl.Trainer(
@@ -158,7 +155,7 @@ class SklChemprop:
                 devices=1,
                 deterministic=True
             )
-            test_preds = trainer.predict(mpnn, test_loader)
+            test_preds = trainer.predict(self.mpnn, test_loader)
         test_preds = np.concatenate(test_preds, axis=0)
 
         return test_preds
