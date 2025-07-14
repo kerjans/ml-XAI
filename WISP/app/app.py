@@ -151,18 +151,33 @@ class DatasetHandler(BaseHandler):
                 if not target or (smiles and len(target) != len(smiles)):
                     target = ["N/A" for _ in smiles]
                     
-                images = []
-                for smi in smiles:
+
+                images = {}
+                # This here would write molecule images as example output,
+                # just for testing / illustration purposes:
+                if False:
+                    images = []
+                    for smi in smiles:
+                        output = io.BytesIO()
+                        img = mol_to_image(Chem.MolFromSmiles(smi))
+                        img.save(output, format="png")
+                        hex_data = output.getvalue()
+                        img64 = base64.b64encode(hex_data).decode("utf-8")
+                        images.append(img64)
+                
+                result_dir = Path(__file__).parent.parent.parent / "example_images"
+                for img_fle in result_dir.glob("*.png"):
+                    img = Image.open(img_fle)
                     output = io.BytesIO()
-                    img = mol_to_image(Chem.MolFromSmiles(smi))
                     img.save(output, format="png")
                     hex_data = output.getvalue()
                     img64 = base64.b64encode(hex_data).decode("utf-8")
-                    images.append(img64)
+                    images[img_fle.name] = img64
+
             else:
                 smiles = []
                 target = []
-                images = []
+                images = {}
 
             
             resp = json.dumps(

@@ -193,20 +193,76 @@
             });
         };
 
-        // pagination handling of images
-        PAGE_SIZE = 4
-        CURRENT_PAGE = 0;
+        const styleImage = function (img) {
+            if (img && img.style) {
+                //img.style.height = '300px';
+                img.style.width = '300px';
+            }
+        }
+
         const refreshImagesOnPage = function () {
             const cp = document.getElementById("result-div");
+
+            cp.style.display = "table-row";
             cp.innerHTML = "";
-            const startP = CURRENT_PAGE * PAGE_SIZE;
-            for (var q = 0; q < PAGE_SIZE; q++) {
-                const image = IMAGES[q + startP];
-                const imgElement = document.createElement('img');
-                //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
-                //document.getElementById("pngImage").src = "data:image/png;base64," + image;
-                imgElement.src = "data:image/png;base64," + image;
-                cp.appendChild(imgElement);
+
+
+            // Top Left -- How well can we explain predictions?
+            const explain_pred_div = document.createElement("div");
+            const explain_pred_label = document.createElement("div");
+            explain_pred_label.innerText = "How well can we explain predictions?";
+            const explain_pred_img = document.createElement('img');
+
+            const col = "PREDvsCONTRIBUTIONSfragmentAtom Attributions_Training_Set.png";
+            explain_pred_img.src = "data:image/png;base64," + IMAGES[col];
+            styleImage(explain_pred_img);
+
+            explain_pred_div.appendChild(explain_pred_label);
+            explain_pred_div.appendChild(explain_pred_img);
+
+            explain_pred_div.style.display = "inline";
+            explain_pred_div.style.display = "table-cell";
+            explain_pred_div.style.width = "350px";
+            cp.appendChild(explain_pred_div);
+
+            // Top Right -- How well can we explain reality?
+            const explain_exp_div = document.createElement("div");
+            const explain_exp_label = document.createElement("div");
+            explain_exp_label.innerText = "How well can we explain reality?";
+            const explain_exp_img = document.createElement('img');
+
+            const col2 = "EXPvsCONTRIBUTIONSwholeAtom Attributions_Test_Set.png";
+            explain_exp_img.src = "data:image/png;base64," + IMAGES[col2];
+            styleImage(explain_exp_img);
+
+            explain_exp_div.appendChild(explain_exp_label);
+            explain_exp_div.appendChild(explain_exp_img);
+
+            explain_exp_div.style.display = "inline";
+            explain_exp_div.style.display = "table-cell";
+            explain_exp_div.style.width = "350px";
+            cp.appendChild(explain_exp_div);
+        };
+
+        // An example showing how one could display molecules
+        // in a grid. Not needed any more, just for reference
+        if (0) {
+
+            // pagination handling of images
+            PAGE_SIZE = 4
+            CURRENT_PAGE = 0;
+            const refreshImagesOnPage = function () {
+                const cp = document.getElementById("result-div");
+                cp.innerHTML = "";
+                const startP = CURRENT_PAGE * PAGE_SIZE;
+                for (var q = 0; q < PAGE_SIZE; q++) {
+                    const image = IMAGES[q + startP];
+                    const imgElement = document.createElement('img');
+                    //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
+                    //document.getElementById("pngImage").src = "data:image/png;base64," + image;
+                    imgElement.src = "data:image/png;base64," + image;
+                    cp.appendChild(imgElement);
+                }
             }
         }
 
@@ -249,7 +305,9 @@
                 </div>
             </div>
             <div class="right-column">
-                <div id="result-div"> </div>
+                <div id="result-table" style="display: table;">
+                    <div id="result-div"> </div>
+                </div>
             </div>
         </div>
     </div>
