@@ -1,4 +1,5 @@
 
+from io import StringIO
 from pathlib import Path
 import asyncio
 import json
@@ -8,11 +9,12 @@ import tornado
 import tornado.ioloop
 import tornado.web
 from tornado import web
-from molfactual import *
 import pandas as pd
 import numpy as np
 
 import importlib
+
+STATIC_FILE_DIR = Path(__file__).parent
 
 
 # Some Utilities
@@ -203,7 +205,7 @@ async def main():
         [
             (r"/", MainHandler),
             (r"/DatasetHandler", DatasetHandler),
-            #(r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
+            (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
         ],
         autoreload=True,
         cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
@@ -223,7 +225,7 @@ async def main():
             application,
         )
 
-    http_server.listen(8911)
+    http_server.listen(8912)
     await asyncio.Event().wait()
 
 
