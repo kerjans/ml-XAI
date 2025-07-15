@@ -184,6 +184,7 @@ def get_features(data, CLOUMS):
     return X
     
 def train_GNN(train, Smiles_Column_Name, Target_Column_Name, working_dir):
+    torch.manual_seed(6)
     model_GNN = SklChemprop(problem_type="regression", max_epochs=20, Smiles_Column_Name=Smiles_Column_Name, Target_Column_Name=Target_Column_Name, working_dir=working_dir)
     model_GNN.fit(train)
     
