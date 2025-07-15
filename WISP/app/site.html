@@ -201,11 +201,16 @@
         }
 
         const refreshImagesOnPage = function () {
-            const cp = document.getElementById("result-div");
 
+
+            var tab = document.createElement("div");
+            tab.style.display = "table";
+            // clear the current results
+            document.getElementById("result-div").innerHTML = "";
+
+            // First Row: Showing the parity plots
+            var cp = document.createElement("div");
             cp.style.display = "table-row";
-            cp.innerHTML = "";
-
 
             // Top Left -- How well can we explain predictions?
             const explain_pred_div = document.createElement("div");
@@ -242,6 +247,44 @@
             explain_exp_div.style.display = "table-cell";
             explain_exp_div.style.width = "350px";
             cp.appendChild(explain_exp_div);
+
+            // Second Row: Showing the examples
+            const cp2 = document.createElement("div");
+            cp2.style.display = "table-row";
+
+            // Top Left -- How well can we explain predictions?
+            const examples_div = document.createElement("div");
+            const examples_label = document.createElement("div");
+            examples_label.innerText = "Molecular explanation examples:";
+            const examples_img = document.createElement('img');
+
+            const col3 = "positive_examples_Atom Attributions-Training.png";
+            examples_img.src = "data:image/png;base64," + IMAGES[col3];
+            styleImage(examples_img);
+            examples_img.style.width = "600px";
+
+            examples_div.appendChild(examples_label);
+            const slider_div = document.createElement("div");
+            slider_div.innerHTML = `
+                <input type="range" style="width: 200px;" id="saturation-slider" min="0" max="10000" value="100">
+            `;
+            const slider = slider_div.children[0];
+            slider.addEventListener('input', function () {
+                const saturationValue = slider.value;
+                examples_img.style.filter = `saturate(${saturationValue}%)`;
+            });
+            examples_div.appendChild(slider_div);
+            examples_div.appendChild(examples_img);
+
+            examples_div.style.display = "inline";
+            examples_div.style.display = "table-cell";
+            examples_div.style.width = "350px";
+            cp2.appendChild(examples_div);
+
+            tab.append(cp);
+
+            document.getElementById("result-div").appendChild(tab);
+            document.getElementById("result-div").appendChild(cp2);
         };
 
         // An example showing how one could display molecules
@@ -305,8 +348,7 @@
                 </div>
             </div>
             <div class="right-column">
-                <div id="result-table" style="display: table;">
-                    <div id="result-div"> </div>
+                <div id="result-div">
                 </div>
             </div>
         </div>
