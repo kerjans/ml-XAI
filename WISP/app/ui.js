@@ -1,0 +1,177 @@
+// see: https://stackoverflow.com/questions/58676967/load-textfile-via-drag-and-drop-on-textarea
+// and: https://www.w3schools.com/html/html5_draganddrop.asp
+
+console.log("loading ui.js");
+function allowDrop(ev) {
+    ev.preventDefault();
+}
+
+const drop = function (evt) {
+    window.my_event = evt;
+    evt.preventDefault();
+    var file = evt.dataTransfer.files[0];
+    var reader = new FileReader();
+
+    reader.onload = function (e) {
+        const txt = e.target.result;
+        //if (evt.target.id == "modelSetting") {
+        updateDataset([txt]);
+        //}
+    };
+    reader.readAsText(file, "UTF-8");
+}
+
+IMAGES = [];
+
+const updateDataset = function (dataset) {
+    fetch("DatasetHandler", {
+
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json'
+        }
+
+        ,
+        body: JSON.stringify({
+            "csv": dataset
+        })
+
+    }).then(res => res.json()).then(res => {
+        console.log("Request complete! response:", res);
+        const status = res["status"];
+
+        if (status == "success") {
+
+            // SIMPLE SHOWCASE FOR NOW: JUST SHOW MOLECULES
+            IMAGES = res["images"];
+
+            refreshImagesOnPage();
+        }
+
+        else {
+            alert("failure could not parse input!");
+        }
+    });
+};
+
+const styleImage = function (img) {
+    if (img && img.style) {
+        //img.style.height = '300px';
+        img.style.width = '300px';
+    }
+};
+
+const refreshImagesOnPage = function () {
+
+
+    var tab = document.createElement("div");
+    tab.style.display = "table";
+    // clear the current results
+    document.getElementById("result-div").innerHTML = "";
+
+    // First Row: Showing the parity plots
+    var cp = document.createElement("div");
+    cp.style.display = "table-row";
+
+    // Top Left -- How well can we explain predictions?
+    const explain_pred_div = document.createElement("div");
+    const explain_pred_label = document.createElement("div");
+    explain_pred_label.innerText = "How well can we explain predictions?";
+    const explain_pred_img = document.createElement('img');
+
+    const col = "PREDvsCONTRIBUTIONSfragmentAtom Attributions_Training_Set.png";
+    explain_pred_img.src = "data:image/png;base64," + IMAGES[col];
+    styleImage(explain_pred_img);
+
+    explain_pred_div.appendChild(explain_pred_label);
+    explain_pred_div.appendChild(explain_pred_img);
+
+    explain_pred_div.style.display = "inline";
+    explain_pred_div.style.display = "table-cell";
+    explain_pred_div.style.width = "350px";
+    cp.appendChild(explain_pred_div);
+
+    // Top Right -- How well can we explain reality?
+    const explain_exp_div = document.createElement("div");
+    const explain_exp_label = document.createElement("div");
+    explain_exp_label.innerText = "How well can we explain reality?";
+    const explain_exp_img = document.createElement('img');
+
+    const col2 = "EXPvsCONTRIBUTIONSwholeAtom Attributions_Test_Set.png";
+    explain_exp_img.src = "data:image/png;base64," + IMAGES[col2];
+    styleImage(explain_exp_img);
+
+    explain_exp_div.appendChild(explain_exp_label);
+    explain_exp_div.appendChild(explain_exp_img);
+
+    explain_exp_div.style.display = "inline";
+    explain_exp_div.style.display = "table-cell";
+    explain_exp_div.style.width = "350px";
+    cp.appendChild(explain_exp_div);
+
+    // Second Row: Showing the examples
+    const cp2 = document.createElement("div");
+    cp2.style.display = "table-row";
+
+    // Top Left -- How well can we explain predictions?
+    const examples_div = document.createElement("div");
+    const examples_label = document.createElement("div");
+    examples_label.innerText = "Molecular explanation examples:";
+    const examples_img = document.createElement('img');
+
+    const col3 = "positive_examples_Atom Attributions-Training.png";
+    examples_img.src = "data:image/png;base64," + IMAGES[col3];
+    styleImage(examples_img);
+    examples_img.style.width = "600px";
+
+    examples_div.appendChild(examples_label);
+    const slider_div = document.createElement("div");
+    slider_div.innerHTML = ` <input type="range" style="width: 200px;" id="saturation-slider" min="0" max="10000" value="100">`;
+    const slider = slider_div.children[0];
+
+    slider.addEventListener('input', function () {
+        const saturationValue = slider.value;
+
+        examples_img.style.filter = `saturate($ {
+                            saturationValue
+                        }
+
+                        %)`;
+    });
+    examples_div.appendChild(slider_div);
+    examples_div.appendChild(examples_img);
+
+    examples_div.style.display = "inline";
+    examples_div.style.display = "table-cell";
+    examples_div.style.width = "350px";
+    cp2.appendChild(examples_div);
+
+    tab.append(cp);
+
+    document.getElementById("result-div").appendChild(tab);
+    document.getElementById("result-div").appendChild(cp2);
+};
+
+// An example showing how one could display molecules
+// in a grid. Not needed any more, just for reference
+if (0) {
+
+    // pagination handling of images
+    PAGE_SIZE = 4
+    CURRENT_PAGE = 0;
+
+    const refreshImagesOnPage = function () {
+        const cp = document.getElementById("result-div");
+        cp.innerHTML = "";
+        const startP = CURRENT_PAGE * PAGE_SIZE;
+
+        for (var q = 0; q < PAGE_SIZE; q++) {
+            const image = IMAGES[q + startP];
+            const imgElement = document.createElement('img');
+            //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
+            //document.getElementById("pngImage").src = "data:image/png;base64," + image;
+            imgElement.src = "data:image/png;base64," + image;
+            cp.appendChild(imgElement);
+        }
+    }
+}

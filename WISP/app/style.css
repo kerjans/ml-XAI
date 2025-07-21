@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f0f0f0;
+    font-family: 'Roboto', sans-serif;
+    /* Use modern sans-serif font */
+}
+
+.container {
+    width: 1024px;
+    /* Typical width of a tablet in landscape */
+    height: 768px;
+    /* Typical height of a tablet in landscape */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.inner-div {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+.left-column {
+    width: 250px;
+    background-color: #1b3f90ff;
+    /* Green */
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    border-radius: 8px;
+    /* Rounded corners */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    /* Subtle shadow */
+}
+
+.input-group {
+    margin-bottom: 20px;
+    /* Increased space between groups */
+}
+
+label {
+    display: flex;
+    justify-content: space-between;
+    /* Space between label and info icon */
+    align-items: center;
+    /* Center vertically */
+    margin-bottom: 5px;
+    font-weight: 700;
+    /* Bold labels */
+}
+
+input {
+    width: 90%;
+    /* Halved width of input elements */
+    padding: 12px;
+    /* Increased padding */
+    margin-bottom: 5px;
+    border: 2px solid #4CAF50;
+    /* Green border */
+    border-radius: 4px;
+    font-size: 16px;
+    /* Larger font size */
+    transition: border-color 0.3s;
+    /* Smooth transition for border color */
+}
+
+input:focus {
+    border-color: #2196F3;
+    /* Change border color to blue on focus */
+    outline: none;
+    /* Remove default outline */
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    color: white;
+}
+
+.info-icon {
+    font-size: 12px;
+    margin-left: 5px;
+}
+
+.tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    /* Position the tooltip above the text */
+    left: 50%;
+    margin-left: -100px;
+    /* Center the tooltip */
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+.right-column {
+    flex-grow: 1;
+    color: black;
+    /* Takes up remaining space */
+    background-color: #cfddf9ff;
+    /* Blue */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    /* Rounded corners */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    /* Subtle shadow */
+}
+
+button {
+    padding: 12px;
+    /* Increased padding */
+    margin-bottom: 5px;
+    border: 2px solid #2c63e7ff;
+    /* Green border */
+    border-radius: 4px;
+    font-size: 16px;
+    /* Larger font size */
+    transition: border-color 0.3s;
+}

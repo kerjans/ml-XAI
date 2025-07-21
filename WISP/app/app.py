@@ -124,6 +124,8 @@ def resilient_read_target(df):
         if len(smi_cols) == 1 and len(target_cols) == 1:
             return df[target_cols[0]].tolist()
 
+    return None
+
 
 
 from rdkit import Chem
@@ -137,6 +139,9 @@ def mol_to_image(mol, width=300, height=300) -> "Image":
     img = Image.open(rand_fle)
     return deepcopy(img)
 
+
+#from WISP.WISP import WISP # :D
+
 class DatasetHandler(BaseHandler):
     @log_function_call
     def post(self):
@@ -149,23 +154,39 @@ class DatasetHandler(BaseHandler):
 
             if df is not None:
                 smiles = resilient_read_smiles(df)
-                target = resilient_read_target(df)
-                if not target or (smiles and len(target) != len(smiles)):
+                #target = resilient_read_target(df)
+                target = df["measured log solubility in mols per litre"].tolist()
+                if target is None or (smiles and len(target) != len(smiles)):
                     target = ["N/A" for _ in smiles]
                     
 
+                df_new = pd.DataFrame(
+                    {"smiles": smiles, "target": target,
+                     "ID": [str(i) for i in range(len(smiles))]}
+                    )
+                id_col = "ID"
+                smiles_col = "smiles"
+                target_col = "target"
+
+                here = Path(__file__).parent
+                working_dir = here / "working_dir"
+                working_dir.mkdir(exist_ok=True,)
+                input_fle = here / "input.csv"
+                df_new.to_csv(input_fle)
+
+                try:
+                    WISP(
+                        working_dir=str(working_dir),
+                        input_dir=str(input_fle),
+                        ID_Column_Name=id_col,
+                        Smiles_Column_Name=smiles_col,
+                        Target_Column_Name=target_col,
+                        use_GNN=False,
+                        )
+                except:
+                    pass
+
                 images = {}
-                # This here would write molecule images as example output,
-                # just for testing / illustration purposes:
-                if False:
-                    images = []
-                    for smi in smiles:
-                        output = io.BytesIO()
-                        img = mol_to_image(Chem.MolFromSmiles(smi))
-                        img.save(output, format="png")
-                        hex_data = output.getvalue()
-                        img64 = base64.b64encode(hex_data).decode("utf-8")
-                        images.append(img64)
                 
                 result_dir = Path(__file__).parent.parent.parent / "example_images"
                 for img_fle in result_dir.glob("*.png"):
