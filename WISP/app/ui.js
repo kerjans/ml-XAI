@@ -6,6 +6,8 @@ function allowDrop(ev) {
     ev.preventDefault();
 }
 
+
+CURRENT_DATA = [];
 const drop = function (evt) {
     window.my_event = evt;
     evt.preventDefault();
@@ -15,13 +17,41 @@ const drop = function (evt) {
     reader.onload = function (e) {
         const txt = e.target.result;
         //if (evt.target.id == "modelSetting") {
-        updateDataset([txt]);
+        CURRENT_DATA = [txt];
+
+        // TODO: trigger dataset preview from here : )
+
         //}
     };
     reader.readAsText(file, "UTF-8");
 }
 
 IMAGES = [];
+
+const submitJob = function () {
+    fetch("JobSubmission", {
+
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "csv": CURRENT_DATA
+        })
+
+    }).then(res => res.json()).then(res => {
+        console.log("Request complete! response:", res);
+        const status = res["status"];
+
+        if (status == "success") {
+            alert("job_id:" + res["job_id"]);
+        }
+
+        else {
+            alert("failure could not parse input!");
+        }
+    });
+};
 
 const updateDataset = function (dataset) {
     fetch("DatasetHandler", {
@@ -42,10 +72,11 @@ const updateDataset = function (dataset) {
 
         if (status == "success") {
 
-            // SIMPLE SHOWCASE FOR NOW: JUST SHOW MOLECULES
             IMAGES = res["images"];
+            MOLECULE_IMAGES = res["molecule_images"];
 
-            refreshImagesOnPage();
+            refreshFirstPage();
+            refreshSecondPage();
         }
 
         else {
@@ -61,9 +92,7 @@ const styleImage = function (img) {
     }
 };
 
-const refreshImagesOnPage = function () {
-
-
+const refreshFirstPage = function () {
     var tab = document.createElement("div");
     tab.style.display = "table";
     // clear the current results
@@ -154,25 +183,23 @@ const refreshImagesOnPage = function () {
 
 // An example showing how one could display molecules
 // in a grid. Not needed any more, just for reference
-if (0) {
+// pagination handling of images
+PAGE_SIZE = 4
+CURRENT_PAGE = 0;
+MOLECULE_IMAGES = [];
 
-    // pagination handling of images
-    PAGE_SIZE = 4
-    CURRENT_PAGE = 0;
+const refreshSecondPage = function () {
+    const cp = document.getElementById("result-div-2");
+    cp.innerHTML = "";
+    const startP = CURRENT_PAGE * PAGE_SIZE;
 
-    const refreshImagesOnPage = function () {
-        const cp = document.getElementById("result-div");
-        cp.innerHTML = "";
-        const startP = CURRENT_PAGE * PAGE_SIZE;
-
-        for (var q = 0; q < PAGE_SIZE; q++) {
-            const image = IMAGES[q + startP];
-            const imgElement = document.createElement('img');
-            //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
-            //document.getElementById("pngImage").src = "data:image/png;base64," + image;
-            imgElement.src = "data:image/png;base64," + image;
-            cp.appendChild(imgElement);
-        }
+    for (var q = 0; q < PAGE_SIZE; q++) {
+        const image = MOLECULE_IMAGES[q + startP];
+        const imgElement = document.createElement('img');
+        //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
+        //document.getElementById("pngImage").src = "data:image/png;base64," + image;
+        imgElement.src = "data:image/png;base64," + image;
+        cp.appendChild(imgElement);
     }
 }
 

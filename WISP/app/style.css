@@ -171,11 +171,11 @@ button {
 
     position: absolute;
     /* Set child to absolute */
-    top: 33%;
+    top: 0%;
     /* Move down 50% of the parent's height */
     left: 105%;
     /* Move right 50% of the parent's width */
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -0%);
 }
 
 .collapsible:hover {

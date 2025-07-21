@@ -5,6 +5,8 @@ import asyncio
 import json
 import io
 import base64
+import random
+import time
 import tornado
 import tornado.ioloop
 import tornado.web
@@ -15,7 +17,6 @@ import numpy as np
 import importlib
 
 STATIC_FILE_DIR = Path(__file__).parent
-
 
 # Some Utilities
 DEVEL = True
@@ -73,7 +74,6 @@ def log_function_call(func):
 # The BaseHandler is the blueprint for a Request Handler
 class BaseHandler(tornado.web.RequestHandler):
     pass
-
 
 
 # The MainHandler displays the website
@@ -141,13 +141,76 @@ def mol_to_image(mol, width=300, height=300) -> "Image":
 
 
 #from WISP.WISP import WISP # :D
-
-class DatasetHandler(BaseHandler):
+class MoleculePage(BaseHandler):
     @log_function_call
     def post(self):
+        req = json.loads(self.request.body)
+        print("req:",req)
+
+        job_id = req["job_id"]
+
+        here = Path(__file__).parent
+        working_dir = here / f"working_dir_{job_id}"
+
+        meta_fle = working_dir / "metadata.json"
+        df = json.loads(meta_fle.read_text())
+
+        mol_images = []
+        if meta_fle.exists():
+            for smi in df.smiles:
+                mol = Chem.MolFromSmiles(smi)
+                if mol:
+                    img = mol_to_image(mol)
+                    output = io.BytesIO()
+                    img.save(output, format="png")
+                    hex_data = output.getvalue()
+                    img64 = base64.b64encode(hex_data).decode("utf-8")
+                    mol_images.append(img64)
+
+        resp = json.dumps(
+            {
+                "mol_images": mol_images,
+                "status": "success",
+            }
+        )
+        self.write(resp)
+
+class WispOverviewPage(BaseHandler):
+    @log_function_call
+    def post(self):
+        req = json.loads(self.request.body)
+        print("req:",req)
+
+        images = {}
+        
+        result_dir = Path(__file__).parent.parent.parent / "example_images"
+        for img_fle in result_dir.glob("*.png"):
+            img = Image.open(img_fle)
+            output = io.BytesIO()
+            img.save(output, format="png")
+            hex_data = output.getvalue()
+            img64 = base64.b64encode(hex_data).decode("utf-8")
+            images[img_fle.name] = img64
+
+        resp = json.dumps(
+            {
+                "images": images,
+                "status": "success",
+            }
+        )
+        self.write(resp)
+
+
+
+class JobSubmissionHandler(BaseHandler):
+    @log_function_call
+    def post(self):
+
+        # guaranteeed random looking choice 
+        job_id = random.choice(["42","123","69","666",])
+
         try:
             req = json.loads(self.request.body)
-
             print("req:",req)
             csv = StringIO(req["csv"][0])
             df = resilient_read_csv(csv)
@@ -169,11 +232,22 @@ class DatasetHandler(BaseHandler):
                 target_col = "target"
 
                 here = Path(__file__).parent
-                working_dir = here / "working_dir"
+
+                working_dir = here / f"working_dir_{job_id}"
                 working_dir.mkdir(exist_ok=True,)
-                input_fle = here / "input.csv"
+
+                metafle = working_dir / "metadata.json"
+                metadat = {
+                            "smiles": smiles,
+                            "target": target,
+                            "job_id": job_id,
+                        }
+                metafle.write_text(json.dumps(metadat))
+
+                input_fle = here / f"input_{job_id}.csv"
                 df_new.to_csv(input_fle)
 
+                time.sleep(6)
                 try:
                     WISP(
                         working_dir=str(working_dir),
@@ -186,32 +260,15 @@ class DatasetHandler(BaseHandler):
                 except:
                     pass
 
-                images = {}
-                
-                result_dir = Path(__file__).parent.parent.parent / "example_images"
-                for img_fle in result_dir.glob("*.png"):
-                    img = Image.open(img_fle)
-                    output = io.BytesIO()
-                    img.save(output, format="png")
-                    hex_data = output.getvalue()
-                    img64 = base64.b64encode(hex_data).decode("utf-8")
-                    images[img_fle.name] = img64
-
-            else:
-                smiles = []
-                target = []
-                images = {}
-
-            
             resp = json.dumps(
                 {
-                    "smiles": smiles,
-                    "target": target,
-                    "images": images,
-                    "status": "success"
+                    "job_id": job_id,
+                    "status": "success",
                 }
             )
             self.write(resp)
+            print("FINISHED PROCESSING SUBMIT JOB")
+
         except:
             resp = json.dumps(
                 {"status": "failure"}
@@ -225,7 +282,7 @@ async def main():
     application = tornado.web.Application(
         [
             (r"/", MainHandler),
-            (r"/DatasetHandler", DatasetHandler),
+            (r"/JobSubmission", JobSubmissionHandler),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
         ],
         autoreload=True,
@@ -246,7 +303,7 @@ async def main():
             application,
         )
 
-    http_server.listen(8913)
+    http_server.listen(8914)
     await asyncio.Event().wait()
 
 
