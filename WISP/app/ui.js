@@ -178,19 +178,27 @@ if (0) {
 
 
 window.onload = () => {
-    document.getElementById("collapsible").addEventListener(
-        "click",
-        function () {
-            document.getElementById("collapsible").classList.toggle("active");
-            var ext = document.getElementById("left-column-ext");
-            var min = document.getElementById("left-column-min");
-            if (ext.style.display === "flex") {
-                ext.style.display = "none";
-                min.style.display = "flex";
-            } else {
-                ext.style.display = "flex";
-                min.style.display = "none";
+    var coll = document.getElementsByClassName("collapsible");
+    var i;
+    for (i = 0; i < coll.length; i++) {
+        var elt = coll[i];
+        elt.addEventListener(
+            "click",
+            function () {
+                elt.classList.toggle("active");
+                var ext = document.getElementById("left-column-ext");
+                var min = document.getElementById("left-column-min");
+                if (ext.style.display === "flex") {
+                    ext.style.display = "none";
+                    min.style.display = "flex";
+                } else {
+                    ext.style.display = "flex";
+                    min.style.display = "none";
+                }
             }
-        }
-    );
+        );
+    };
+
+    // initialize state properly
+    coll[0].click();
 };

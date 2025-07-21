@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+/* @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+*/
 
 body {
     margin: 0;
@@ -28,6 +29,7 @@ body {
 }
 
 .left-column-ext {
+    position: relative;
     width: 250px;
     background-color: #1b3f90ff;
     /* Green */
@@ -42,13 +44,14 @@ body {
 }
 
 .left-column-min {
+    position: relative;
     display: none;
-    width: 100px;
+    width: 50px;
     background-color: #1b3f90ff;
+    padding-top: 20px;
     /* Green */
     color: white;
     flex-direction: column;
-    padding: 20px;
     border-radius: 8px;
     /* Rounded corners */
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -157,15 +160,22 @@ button {
 }
 
 .collapsible {
-    background-color: #eee;
-    color: #444;
+    background-color: #405279;
+    color: #ffffff;
     cursor: pointer;
-    padding: 18px;
-    width: 100%;
+    width: 10px;
     border: none;
-    text-align: left;
+    text-align: right;
     outline: none;
-    font-size: 15px;
+    font-size: 25px;
+
+    position: absolute;
+    /* Set child to absolute */
+    top: 33%;
+    /* Move down 50% of the parent's height */
+    left: 105%;
+    /* Move right 50% of the parent's width */
+    transform: translate(-50%, -50%);
 }
 
 .collapsible:hover {
