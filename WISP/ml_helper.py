@@ -408,8 +408,8 @@ def train_and_evaluate_reg_model(model, train, test, featureCOLUMS, Target_Colum
     #print/plot results
     print('Performance on testset(r2, R2, MAE, RMSE, Maximal Error, MSE):',r2,';',R2,';',MAE,';',rmse,';',max_err,';', mse)
 
-    r2 = np.corrcoef(predictions.flatten(), target_test.flatten())[0,1]**2###################################################
-    plot_2D(['r$^2$ = ' + str(f"{r2:.2f}")], 'upper left', predictions , target_test,
+    r2 = np.corrcoef(predictions.flatten(), target_test.flatten())[0,1]**2
+    plot_2D(['$r^2$ = ' + str(f"{r2:.2f}")], 'upper left', predictions , target_test,
             'predicted', 'experimental', working_dir + '20-80-split-true-pred.png', '#A43341', 
             include_line=False, line_style='None')
     
