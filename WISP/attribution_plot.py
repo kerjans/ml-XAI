@@ -11,6 +11,7 @@ rdBase.DisableLog("rdApp.*")
 import PIL
 from PIL import ImageDraw
 from PIL.Image import Image
+from PIL import ImageFont
 
 # from .helper import *
 
@@ -44,6 +45,11 @@ def tile_images_with_annots(
     h_total = n_tiles_h * tile_h
     tile_image = PIL.Image.new("RGB", (w_total, h_total))
     draw = ImageDraw.Draw(tile_image)
+    font_size = int(tile_h * 0.05)  # 7% of tile height — adjust as needed
+    try:
+        font = ImageFont.truetype("DejaVuSans.ttf", font_size)
+    except OSError:
+        font = ImageFont.load_default()
     x = 0
     y = 0
     while y < h_total:
@@ -73,14 +79,14 @@ def tile_images_with_annots(
             if sampling_strategy == "deterministic":
                 if idx < len(annots):
                     annot = annots[idx]
-                    draw.text((x, y), annot, annot_color)
+                    draw.text((x + 5, y + 5), annot, annot_color, font=font)
 
             if imgs_left and sampling_strategy == "random":
                 if idx < len(annots):
                     annot = annots[idx]
                 else:
                     annot = ""
-                draw.text((x, y), annot, annot_color)
+                draw.text((x + 5, y + 5), annot, annot_color, font=font)
 
                 if not with_replacement:
                     imgs_left = [i for i in imgs_left if i != idx]

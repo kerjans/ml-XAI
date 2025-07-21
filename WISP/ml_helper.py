@@ -258,8 +258,11 @@ def get_best_reg_model(model_types, ALLfeatureCOLUMS, train, Target_Column_Name,
     results = []
 
     if use_GNN is True:
+        checkpoint_dir = working_dir + 'checkpoints/' 
+        if os.path.exists(checkpoint_dir) and os.path.isdir(checkpoint_dir):
+            shutil.rmtree(checkpoint_dir) #deletes old checkpoint dir
         r2, R2, MAE, RMSE = train_GNN(train, 'smiles_std', Target_Column_Name, working_dir)#############################
-        model_GNN = SklChemprop(problem_type="regression", max_epochs=20, Smiles_Column_Name='smiled_std', Target_Column_Name=Target_Column_Name, working_dir=working_dir)##################
+        model_GNN = SklChemprop(problem_type="regression", max_epochs=50, Smiles_Column_Name='smiled_std', Target_Column_Name=Target_Column_Name, working_dir=working_dir)##################
         results.append({'Feature': 'smiles_std','Model_Type': 'SklChemprop','Model': model_GNN,'r2': r2,'R2': R2,'MAE': MAE,'RMSE': RMSE})##################
     for model_arc in model_types:          
         for feature in ALLfeatureCOLUMS:
@@ -405,8 +408,8 @@ def train_and_evaluate_reg_model(model, train, test, featureCOLUMS, Target_Colum
     #print/plot results
     print('Performance on testset(r2, R2, MAE, RMSE, Maximal Error, MSE):',r2,';',R2,';',MAE,';',rmse,';',max_err,';', mse)
 
-    r2 = np.corrcoef(predictions.flatten(), target_test.flatten())[0,1]**2###################################################
-    plot_2D(['r$^2$ = ' + str(f"{r2:.2f}")], 'upper left', predictions , target_test,
+    r2 = np.corrcoef(predictions.flatten(), target_test.flatten())[0,1]**2
+    plot_2D(['$r^2$ = ' + str(f"{r2:.2f}")], 'upper left', predictions , target_test,
             'predicted', 'experimental', working_dir + '20-80-split-true-pred.png', '#A43341', 
             include_line=False, line_style='None')
     

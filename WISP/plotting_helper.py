@@ -201,7 +201,7 @@ def generate_heatmap(data, index, output_dir, smiles_column, attribution_column,
     mol_id = data[ID_column][index]
 
     if task_type == 'regression':
-        vmax = data[attribution_column].apply(lambda lst: max(map(abs, lst))).max() * 0.7
+        vmax = np.percentile(data[attribution_column].apply(lambda lst: max(map(abs, lst))),70)
     if task_type == 'classification':
         vmax = 0.7
     vmin = -vmax
