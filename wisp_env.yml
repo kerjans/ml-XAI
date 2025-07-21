@@ -240,4 +240,3 @@ dependencies:
       - wrapt==1.14.1
       - xarray==2025.6.1
       - yarl==1.20.1
-prefix: /Users/kerrinjanssen/anaconda3/envs/bayer
