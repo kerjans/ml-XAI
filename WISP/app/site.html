@@ -12,7 +12,13 @@
 <body>
     <div class="container">
         <div class="inner-div">
-            <div class="left-column">
+
+
+            <div class="left-column-min" id="left-column-min">
+                <div><img src="/static/logo_XAI_app.png" width="200px"></div>
+            </div>
+
+            <div class="left-column-ext" id="left-column-ext">
                 <div><img src="/static/logo_XAI_app.png" width="200px"></div>
                 <div class="input-group"><label for="dataset">Upload CSV <span class="tooltip">ℹ️<span
                                 class="tooltip-text">Enter a path or URL to a dataset in CSV
@@ -36,6 +42,7 @@
             <div class="right-column">
                 <div id="result-div"></div>
             </div>
+            <button type="button" id="collapsible">Open Collapsible</button>
         </div>
     </div>
 </body>

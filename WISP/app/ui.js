@@ -175,3 +175,22 @@ if (0) {
         }
     }
 }
+
+
+window.onload = () => {
+    document.getElementById("collapsible").addEventListener(
+        "click",
+        function () {
+            document.getElementById("collapsible").classList.toggle("active");
+            var ext = document.getElementById("left-column-ext");
+            var min = document.getElementById("left-column-min");
+            if (ext.style.display === "flex") {
+                ext.style.display = "none";
+                min.style.display = "flex";
+            } else {
+                ext.style.display = "flex";
+                min.style.display = "none";
+            }
+        }
+    );
+};

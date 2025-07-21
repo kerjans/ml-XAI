@@ -27,12 +27,26 @@ body {
     height: 100%;
 }
 
-.left-column {
+.left-column-ext {
     width: 250px;
     background-color: #1b3f90ff;
     /* Green */
     color: white;
     display: flex;
+    flex-direction: column;
+    padding: 20px;
+    border-radius: 8px;
+    /* Rounded corners */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    /* Subtle shadow */
+}
+
+.left-column-min {
+    display: none;
+    width: 100px;
+    background-color: #1b3f90ff;
+    /* Green */
+    color: white;
     flex-direction: column;
     padding: 20px;
     border-radius: 8px;
@@ -140,4 +154,20 @@ button {
     font-size: 16px;
     /* Larger font size */
     transition: border-color 0.3s;
+}
+
+.collapsible {
+    background-color: #eee;
+    color: #444;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+}
+
+.collapsible:hover {
+    background-color: #ccc;
 }
