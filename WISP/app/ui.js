@@ -233,4 +233,24 @@ window.onload = () => {
 
     // initialize state properly
     coll[0].click();
+
+    var coll = document.getElementsByClassName("collapsiblex");
+    var i;
+
+    const contents = { "Jobs": "job-id-div", "Overview": "result-div", "Evaluation": "result-div-2" }
+    for (i = 0; i < coll.length; i++) {
+        const elt = coll[i];
+        const clicked_on = elt.innerText;
+        const content_id = contents[clicked_on];
+        const content = document.getElementById(content_id);
+        elt.addEventListener("click", function () {
+            for (const [key, value] of Object.entries(contents)) {
+                if (key === clicked_on) {
+                    document.getElementById(value).style.display = "block";
+                } else {
+                    document.getElementById(value).style.display = "none";
+                }
+            }
+        });
+    }
 };

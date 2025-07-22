@@ -142,6 +142,7 @@ input:focus {
 }
 
 .right-column {
+    position: relative;
     flex-grow: 1;
     color: black;
     /* Takes up remaining space */
@@ -173,8 +174,19 @@ button {
     color: #ffffff;
 }
 
+.collapsiblex {
+    background-color: #405279;
+    color: #ffffff;
+    cursor: pointer;
+    border: none;
+    text-align: right;
+    outline: none;
+    font-size: 25px;
+}
 
 .collapsible {
+    /* classic trick :p */
+    z-index: 10000;
     background-color: #405279;
     color: #ffffff;
     cursor: pointer;

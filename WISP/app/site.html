@@ -54,20 +54,30 @@
             </div>
             <div class="right-column">
 
-                <div id="job-id-div">
-                    <p>Enter a job id to retrieve the WISP results of.</p>
-                    <p style="margin-bottom: 0px; font-weight: bold;">Job ID:</p>
-                    <input id="job-id-input" style="width: 50px;"></input>
-                    <br>
-                    <button class="primary-button" style="margin-top: 25px;">Retrieve Result</button>
+                <div style="position: absolute; top: 0%;">
+                    <button class="collapsiblex">Jobs</button>
+                    <button class="collapsiblex">Overview</button>
+                    <button class="collapsiblex">Evaluation</button>
                 </div>
 
-                <div id="result-div">
+                <div style="position: absolute;">
 
-                </div>
+                    <div id="job-id-div">
+                        <p>Enter a job id to retrieve the WISP results of.</p>
+                        <p style="margin-bottom: 0px; font-weight: bold;">Job ID:</p>
+                        <input id="job-id-input" style="width: 50px;"></input>
+                        <br>
+                        <button onclick="retrieveResults();" class="primary-button" style="margin-top: 25px;">Retrieve
+                            Result</button>
+                    </div>
 
-                <div id="result-div-2">
+                    <div id="result-div">
 
+                    </div>
+
+                    <div id="result-div-2">
+
+                    </div>
                 </div>
             </div>
         </div>
