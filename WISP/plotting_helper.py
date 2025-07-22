@@ -164,7 +164,7 @@ def plot_MMP_correlations(data_MMPs, attr_method, color, working_dir, Target_Col
             include_line=False, line_style='None')
 
     plot_2D(['$r^2$(' + attr_method + ') = ' + str(f"{r2_fragment:.2f}")], 'upper left', data_MMPs['delta_prediction'], data_MMPs['delta_sum_fragment_contributions_' + attr_method],
-            '$\Delta$Predictions MMP', '$\Delta$Attributions MMP (Fragment)', working_dir + 'PREDvsCONTRIBUTIONSfragment' + attr_method + '.png', 
+            '$\Delta$Predictions MMP', '$\Delta$Attributions MMP (Variable)', working_dir + 'PREDvsCONTRIBUTIONSfragment' + attr_method + '.png', 
             color, header,
             include_line=False, line_style='None')
 
@@ -174,7 +174,7 @@ def plot_MMP_correlations(data_MMPs, attr_method, color, working_dir, Target_Col
     r2 = np.corrcoef(data_MMPs['delta_target'], data_MMPs['delta_sum_' + attr_method])[0,1]**2
 
     plot_2D(['$r^2$(' + attr_method + ') = ' + str(f"{r2:.2f}")], 'upper left', data_MMPs['delta_target'], data_MMPs['delta_sum_' + attr_method],
-            '$\Delta$Target MMP', '$\Delta$Attributions MMP (whole Mol)', working_dir + 'EXPvsCONTRIBUTIONSwhole' + attr_method + '.png', 
+            '$\Delta$Reference MMP', '$\Delta$Attributions MMP (whole Mol)', working_dir + 'EXPvsCONTRIBUTIONSwhole' + attr_method + '.png', 
             color, header,
             include_line=False, line_style='None')
     
