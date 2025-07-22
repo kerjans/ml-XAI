@@ -150,7 +150,7 @@ class MoleculePage(BaseHandler):
         job_id = req["job_id"]
 
         here = Path(__file__).parent
-        working_dir = here / f"working_dir_{job_id}"
+        working_dir = here / "working_dir" / f"{job_id}"
 
         meta_fle = working_dir / "metadata.json"
         df = json.loads(meta_fle.read_text())
@@ -213,7 +213,7 @@ class JobSubmissionHandler(BaseHandler):
             req = json.loads(self.request.body)
             print("req:",req)
             csv = StringIO(req["csv"][0])
-            df = resilient_read_csv(csv)
+            df = resilient_read_csv(csv).sample(64)
 
             if df is not None:
                 smiles = resilient_read_smiles(df)
@@ -233,7 +233,7 @@ class JobSubmissionHandler(BaseHandler):
 
                 here = Path(__file__).parent
 
-                working_dir = here / f"working_dir_{job_id}"
+                working_dir = here / "working_dir" / f"{job_id}"
                 working_dir.mkdir(exist_ok=True,)
 
                 metafle = working_dir / "metadata.json"

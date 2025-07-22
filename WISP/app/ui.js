@@ -29,6 +29,9 @@ const drop = function (evt) {
 IMAGES = [];
 
 const submitJob = function () {
+    const but = document.getElementById("submit-button");
+    but.disabled = true;
+    but.style.opacity = 0.5;
     fetch("JobSubmission", {
 
         method: "POST",
@@ -44,7 +47,9 @@ const submitJob = function () {
         const status = res["status"];
 
         if (status == "success") {
-            alert("job_id:" + res["job_id"]);
+            document.getElementById("job-id-input").value = res["job_id"];
+            but.disabled = false;
+            but.style.opacity = 1.0;
         }
 
         else {

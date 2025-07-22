@@ -44,7 +44,7 @@
                                 variable.</span></span></label><input type="text" id="target-column"
                         placeholder="Enter target column name"></div>
 
-                <button id="submit-button" onclick="submitJob();">
+                <button id="submit-button" class="primary-button" onclick="submitJob();">
                     Submit
                 </button>
 
@@ -54,6 +54,13 @@
             </div>
             <div class="right-column">
 
+                <div id="job-id-div">
+                    <p>Enter a job id to retrieve the WISP results of.</p>
+                    <p style="margin-bottom: 0px; font-weight: bold;">Job ID:</p>
+                    <input id="job-id-input" style="width: 50px;"></input>
+                    <br>
+                    <button class="primary-button" style="margin-top: 25px;">Retrieve Result</button>
+                </div>
 
                 <div id="result-div">
 

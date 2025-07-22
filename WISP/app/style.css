@@ -28,6 +28,15 @@ body {
     height: 100%;
 }
 
+#job-id-div {
+    background-color: #1b3f90ff;
+    /* Green */
+    display: block;
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+}
+
 .left-column-ext {
     position: relative;
     width: 250px;
@@ -158,6 +167,12 @@ button {
     /* Larger font size */
     transition: border-color 0.3s;
 }
+
+.primary-button {
+    background-color: #2c63e7ff;
+    color: #ffffff;
+}
+
 
 .collapsible {
     background-color: #405279;
