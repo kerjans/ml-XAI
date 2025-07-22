@@ -89,14 +89,14 @@ class MainHandler(BaseHandler):
         self.write(self.read())
 
 
-def resilient_read_csv(csv):
+def resilient_read_csv(csv,nrows=None,):
     try:
-        return pd.read_csv(csv)
+        return pd.read_csv(csv,nrows=nrows,)
     except:
         try:
-            return pd.read_csv(csv,sep="\t")
+            return pd.read_csv(csv,sep="\t",nrows=nrows)
         except:
-            return pd.read_csv(csv,sep=";")
+            return pd.read_csv(csv,sep=";",nrows=nrows)
     return None
 
 def resilient_read_smiles(df):
@@ -201,6 +201,37 @@ class WispOverviewPage(BaseHandler):
         self.write(resp)
 
 
+class GuessColumnsHandler(BaseHandler):
+    @log_function_call
+    def post(self):
+
+        smiles_col = None
+        target_col = None
+        try:
+            req = json.loads(self.request.body)
+            print("req:",req)
+            csv = StringIO(req["csv"][0])
+            df = resilient_read_csv(csv,nrows=30,)
+            for col in df.columns:
+                if "smi" in col.lower():
+                    smiles_col = col
+                
+                if "float" in str(df[col].dtype):
+                    target_col = col
+
+        except:
+            pass
+
+        resp = json.dumps(
+            {
+                "smiles_col": smiles_col,
+                "target_col": target_col,
+            }
+        )
+        self.write(resp)
+
+
+
 
 class JobSubmissionHandler(BaseHandler):
     @log_function_call
@@ -283,6 +314,7 @@ async def main():
         [
             (r"/", MainHandler),
             (r"/JobSubmission", JobSubmissionHandler),
+            (r"/GuessColumnsHandler", GuessColumnsHandler),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
         ],
         autoreload=True,
