@@ -226,6 +226,7 @@ class GuessColumnsHandler(BaseHandler):
             {
                 "smiles_col": smiles_col,
                 "target_col": target_col,
+                "status": "success",
             }
         )
         self.write(resp)

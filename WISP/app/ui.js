@@ -21,6 +21,29 @@ const drop = function (evt) {
 
         // TODO: trigger dataset preview from here : )
 
+        fetch("GuessColumnsHandler", {
+
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                "csv": CURRENT_DATA
+            })
+
+        }).then(res => res.json()).then(res => {
+            console.log("Request complete! response:", res);
+            const status = res["status"];
+
+            if (status == "success") {
+                document.getElementById("smiles-column").value = res["smiles_col"];
+                document.getElementById("target-column").value = res["target_col"];
+            }
+
+            else {
+                alert("failure could not parse input!");
+            }
+        });
         //}
     };
     reader.readAsText(file, "UTF-8");
