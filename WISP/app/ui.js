@@ -257,23 +257,27 @@ window.onload = () => {
     // initialize state properly
     coll[0].click();
 
-    var coll = document.getElementsByClassName("collapsiblex");
-    var i;
+    coll = document.getElementsByClassName("collapsiblex");
+    i = 0;
 
     const contents = { "Jobs": "job-id-div", "Overview": "result-div", "Evaluation": "result-div-2" }
     for (i = 0; i < coll.length; i++) {
         const elt = coll[i];
         const clicked_on = elt.innerText;
-        const content_id = contents[clicked_on];
-        const content = document.getElementById(content_id);
         elt.addEventListener("click", function () {
+            Array.from(coll).forEach(et => et.classList.remove("collapsiblex-active"));
+            elt.classList.add("collapsiblex-active");
             for (const [key, value] of Object.entries(contents)) {
+                const other_elt = document.getElementById(value);
                 if (key === clicked_on) {
-                    document.getElementById(value).style.display = "block";
+                    other_elt.style.display = "block";
                 } else {
-                    document.getElementById(value).style.display = "none";
+                    other_elt.style.display = "none";
                 }
             }
         });
     }
+
+    // initialize state properly
+    coll[0].click();
 };

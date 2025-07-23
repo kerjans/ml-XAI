@@ -175,19 +175,27 @@ button {
 }
 
 .collapsiblex {
-    background-color: #405279;
-    color: #ffffff;
-    cursor: pointer;
+    /*background-color: #1b3f90ff;*/
+    background-color: #cfddf9ff;
+    /* #1b3f90ff;*/
     border: none;
+    border-bottom: 4px solid #1b3f90ff;
+    color: black;
+    cursor: pointer;
     text-align: right;
     outline: none;
     font-size: 25px;
 }
 
+.collapsiblex-active {
+    border-bottom: 4px solid white;
+    color: #1b3f90ff;
+}
+
 .collapsible {
     /* classic trick :p */
     z-index: 10000;
-    background-color: #405279;
+    background-color: #1b3f90ff;
     color: #ffffff;
     cursor: pointer;
     width: 10px;

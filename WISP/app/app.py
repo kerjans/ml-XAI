@@ -288,7 +288,7 @@ class JobSubmissionHandler(BaseHandler):
                         }
                 metafle.write_text(json.dumps(metadat))
 
-                input_fle = here / f"input_{job_id}.csv"
+                input_fle = working_dir / f"input_{job_id}.csv"
                 df_new.to_csv(input_fle)
 
                 loop = asyncio.get_running_loop()
