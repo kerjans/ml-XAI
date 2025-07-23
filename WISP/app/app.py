@@ -1,5 +1,6 @@
 
 from io import StringIO
+import os
 from pathlib import Path
 import asyncio
 import json
@@ -294,7 +295,8 @@ class JobSubmissionHandler(BaseHandler):
                 _ = loop.run_in_executor(
                     PROCESS_POOL, run_wisp, 
                     {
-                        "working_dir":str(working_dir),
+                        # fix for internal wisp processing problems
+                        "working_dir":str(working_dir)+str(os.path.sep), 
                         "input_dir":str(input_fle),
                         "ID_Column_Name":id_col,
                         "Smiles_Column_Name":smiles_col,
