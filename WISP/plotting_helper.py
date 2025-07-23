@@ -15,6 +15,7 @@ from matplotlib.colorbar import ColorbarBase
 from WISP.get_indices import *
 
 
+DISPLAY_PLOTS = False
 
 def plot_2D(LEGEND, placeLegend, Xaxes, Yaxes, Xlable, Ylable, SAVEDIR, color, header=None, include_line=True, line_style='-'):
     plt.rcParams['font.family'] = 'arial'
@@ -34,7 +35,10 @@ def plot_2D(LEGEND, placeLegend, Xaxes, Yaxes, Xlable, Ylable, SAVEDIR, color, h
     plt.tick_params(labelsize=16)
     plt.legend(LEGEND, fontsize=16, loc=placeLegend)
     plt.savefig(SAVEDIR, dpi=300, bbox_inches='tight')
-    plt.show()
+    if DISPLAY_PLOTS:
+        plt.show()
+    else:
+        plt.clf()
 
 def plot_histogram(dataset1, dataset2, colum_of_interest, x_Label, y_Label, dataset1_name,dataset2_name,  SAVEDIR):
     '''
@@ -73,7 +77,10 @@ def plot_histogram(dataset1, dataset2, colum_of_interest, x_Label, y_Label, data
     plt.tick_params(labelsize=16)
     plt.xticks(bins[:-1], labels=bin_labels)
     plt.savefig(SAVEDIR, dpi=300, bbox_inches='tight')
-    plt.show()
+    if DISPLAY_PLOTS:
+        plt.show()
+    else:
+        plt.clf()
 
 def plot_histogram_one_dataset(data, colum_of_interest, label, color, attr_method, save_dir, header):
 
@@ -103,7 +110,11 @@ def plot_histogram_one_dataset(data, colum_of_interest, label, color, attr_metho
     filename = f"{attr_method.replace(' ', '_').lower()}_histogram_{header.replace(' ', '_').lower()}.png"
     save_path = os.path.join(save_dir, filename)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    plt.show()
+
+    if DISPLAY_PLOTS:
+        plt.show()
+    else:
+        plt.clf()
 
 def replace_nan_with_zero(vector_str):
     #vector_str = vector_str.replace('nan', 'np.nan')

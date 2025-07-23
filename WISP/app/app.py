@@ -14,6 +14,10 @@ from tornado import web
 import pandas as pd
 import numpy as np
 
+import concurrent.futures
+
+PROCESS_POOL = concurrent.futures.ProcessPoolExecutor(max_workers=4,)
+
 import importlib
 
 STATIC_FILE_DIR = Path(__file__).parent
@@ -232,11 +236,18 @@ class GuessColumnsHandler(BaseHandler):
         self.write(resp)
 
 
+from WISP.WISP import WISP # :o
+def run_wisp(args):
+    print("START","run_wisp")
+    #time.sleep(20)
+    WISP(**args)
+    print("END","run_wisp")
+    return
 
 
 class JobSubmissionHandler(BaseHandler):
     @log_function_call
-    def post(self):
+    async def post(self):
 
         # guaranteeed random looking choice 
         job_id = random.choice(["42","123","69","666",])
@@ -245,7 +256,7 @@ class JobSubmissionHandler(BaseHandler):
             req = json.loads(self.request.body)
             print("req:",req)
             csv = StringIO(req["csv"][0])
-            df = resilient_read_csv(csv).sample(64)
+            df = resilient_read_csv(csv).sample(256)
 
             if df is not None:
                 smiles = resilient_read_smiles(df)
@@ -279,18 +290,18 @@ class JobSubmissionHandler(BaseHandler):
                 input_fle = here / f"input_{job_id}.csv"
                 df_new.to_csv(input_fle)
 
-                time.sleep(6)
-                try:
-                    WISP(
-                        working_dir=str(working_dir),
-                        input_dir=str(input_fle),
-                        ID_Column_Name=id_col,
-                        Smiles_Column_Name=smiles_col,
-                        Target_Column_Name=target_col,
-                        use_GNN=False,
-                        )
-                except:
-                    pass
+                loop = asyncio.get_running_loop()
+                _ = loop.run_in_executor(
+                    PROCESS_POOL, run_wisp, 
+                    {
+                        "working_dir":str(working_dir),
+                        "input_dir":str(input_fle),
+                        "ID_Column_Name":id_col,
+                        "Smiles_Column_Name":smiles_col,
+                        "Target_Column_Name":target_col,
+                        "use_GNN":False,
+                        },
+                )
 
             resp = json.dumps(
                 {
