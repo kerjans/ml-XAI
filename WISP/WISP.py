@@ -82,6 +82,7 @@ def suppress_output():
             sys.stdout = old_stdout
             sys.stderr = old_stderr
 
+# Careful: input_dir is actually input_file!
 def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Column_Name, model_available=None, use_GNN=True):
     '''
     If you have your model available please place it in the working_dir as model.pkl
