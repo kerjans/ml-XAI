@@ -221,7 +221,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
                 data_MMPs = plot_const_histogram(data_MMPs, attr_method, color, working_dir)
             
             #Analyse Locality
-            data_MMPs = analyze_locality(data_MMPs, Attribution_Colums, working_dir)
+            #data_MMPs = analyze_locality(data_MMPs, Attribution_Colums, working_dir)
 
     #test/train dependency and plots
     if model_available is None:
@@ -239,10 +239,10 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             test_set = plot_const_histogram(test_set, attr_method, color, working_dir, header='Test Set')
         
         #Analyse Locality
-        print('For the training set:')
-        train_set = analyze_locality(train_set, Attribution_Colums, working_dir)
-        print('For the test set:')
-        test_set = analyze_locality(test_set, Attribution_Colums, working_dir)
+        #print('For the training set:')
+        #train_set = analyze_locality(train_set, Attribution_Colums, working_dir)
+        #print('For the test set:')
+        #test_set = analyze_locality(test_set, Attribution_Colums, working_dir)
         
         for attr_method, color in zip(Attribution_Colums, color_coding): 
         
