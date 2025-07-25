@@ -169,6 +169,10 @@ button {
     transition: border-color 0.3s;
 }
 
+button:active {
+    transform: translateY(4px);
+}
+
 .primary-button {
     background-color: #2c63e7ff;
     color: #ffffff;
@@ -278,6 +282,10 @@ ul.gallery>li img {
     object-fit: cover;
 }
 
-img:hover {
-    transform: scale(2.0)
+ul.gallery>li img:hover {
+    transform: scale(2.0);
+}
+
+.zoomable:hover {
+    transform: scale(2.0);
 }

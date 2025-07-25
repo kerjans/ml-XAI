@@ -86,6 +86,7 @@ const get_current_job_id = function () {
 };
 
 const retrieveResults = function (dataset) {
+
     fetch("WispOverviewPage", {
 
         method: "POST",
@@ -170,6 +171,7 @@ const refreshFirstPage = function () {
     const explain_pred_label = document.createElement("div");
     explain_pred_label.innerText = "How well can we explain predictions?";
     const explain_pred_img = document.createElement('img');
+    explain_pred_img.classList.add("zoomable");
 
     const col = "PREDvsCONTRIBUTIONSfragmentAtom Attributions_Training_Set.png";
     explain_pred_img.src = "data:image/png;base64," + IMAGES[col];
@@ -188,6 +190,8 @@ const refreshFirstPage = function () {
     const explain_exp_label = document.createElement("div");
     explain_exp_label.innerText = "How well can we explain reality?";
     const explain_exp_img = document.createElement('img');
+
+    explain_exp_img.classList.add("zoomable");
 
     const col2 = "EXPvsCONTRIBUTIONSwholeAtom Attributions_Test_Set.png";
     explain_exp_img.src = "data:image/png;base64," + IMAGES[col2];
@@ -265,6 +269,7 @@ const refreshSecondPage = function () {
     const imgLeg = document.createElement('img');
     imgLeg.src = "data:image/png;base64," + LEGEND_IMAGE;
     imgLeg.style.width = "150px";
+    imgLeg.classList.add("zoomable");
 
     div_gallery.appendChild(imgLeg)
 
