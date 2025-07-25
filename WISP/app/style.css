@@ -178,6 +178,13 @@ button:active:not(.collapsible) {
     color: #ffffff;
 }
 
+.nav-button {
+    background-color: #2c63e7ff;
+    color: #ffffff;
+    padding: 1px;
+    margin: 1px;
+}
+
 .collapsiblex {
     /*background-color: #1b3f90ff;*/
     background-color: #cfddf9ff;
@@ -283,9 +290,9 @@ ul.gallery>li img {
 }
 
 ul.gallery>li img:hover {
-    transform: scale(2.0);
+    transform: scale(1.5);
 }
 
 .zoomable:hover {
-    transform: scale(2.0);
+    transform: scale(1.5);
 }

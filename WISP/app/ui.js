@@ -266,6 +266,41 @@ const refreshSecondPage = function () {
     const startP = CURRENT_PAGE * PAGE_SIZE;
 
     const div_gallery = document.createElement("div");
+
+    const but_div = document.createElement("div");
+    const but_left = document.createElement("button");
+    const N_PAGES = Math.ceil(MOLECULE_IMAGES.length / PAGE_SIZE);
+    but_left.id = "left-button";
+    but_left.innerText = "<";
+    const but_right = document.createElement("button");
+    but_right.id = "right-button";
+    but_right.innerText = ">";
+
+    const page_label = document.createElement("p");
+    page_label.innerText = `${CURRENT_PAGE + 1} / ${N_PAGES}`;
+    page_label.style.color = "black";
+    page_label.style.display = "inline";
+
+    but_left.classList.add("nav-button");
+    but_right.classList.add("nav-button");
+
+    but_left.onclick = function (evt) {
+        CURRENT_PAGE = Math.max(0, CURRENT_PAGE - 1);
+        refreshSecondPage();
+    };
+    but_right.onclick = function (evt) {
+        CURRENT_PAGE = Math.min(N_PAGES - 1, CURRENT_PAGE + 1);
+        refreshSecondPage();
+    };
+
+    but_div.style.position = "absolute";
+    but_div.style.top = "-2%";
+    but_div.style.right = "-2%";
+    but_div.appendChild(but_left);
+    but_div.appendChild(page_label);
+    but_div.appendChild(but_right);
+    div_gallery.appendChild(but_div);
+
     const imgLeg = document.createElement('img');
     imgLeg.src = "data:image/png;base64," + LEGEND_IMAGE;
     imgLeg.style.width = "150px";
@@ -281,7 +316,9 @@ const refreshSecondPage = function () {
         const imgElement = document.createElement('img');
         //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
         //document.getElementById("pngImage").src = "data:image/png;base64," + image;
-        imgElement.src = "data:image/png;base64," + image;
+        if (image) {
+            imgElement.src = "data:image/png;base64," + image;
+        }
         //styleImage(imgElement);
         imgElement.style.width = "150px";
 
