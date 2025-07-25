@@ -249,7 +249,8 @@ const refreshFirstPage = function () {
 // An example showing how one could display molecules
 // in a grid. Not needed any more, just for reference
 // pagination handling of images
-PAGE_SIZE = 4
+PAGE_SIZE = 16
+COL_SIZE = 4
 CURRENT_PAGE = 0;
 MOLECULE_IMAGES = [];
 
@@ -258,15 +259,26 @@ const refreshSecondPage = function () {
     cp.innerHTML = "";
     const startP = CURRENT_PAGE * PAGE_SIZE;
 
+    const div_row = document.createElement("div");
+    div_row.classList.add("hm-row");
+    var div_col = document.createElement("div");
     for (var q = 0; q < PAGE_SIZE; q++) {
+        if (q % COL_SIZE == 0) {
+            div_col = document.createElement("div");
+            div_col.classList.add("hm-col");
+            div_row.appendChild(div_col);
+        }
         const image = MOLECULE_IMAGES[q + startP];
         const imgElement = document.createElement('img');
         //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
         //document.getElementById("pngImage").src = "data:image/png;base64," + image;
         imgElement.src = "data:image/png;base64," + image;
-        styleImage(imgElement);
-        cp.appendChild(imgElement);
+        //styleImage(imgElement);
+        imgElement.style.width = "150px";
+
+        div_col.appendChild(imgElement);
     }
+    cp.appendChild(div_row);
 }
 
 

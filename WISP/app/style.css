@@ -216,3 +216,26 @@ button {
 .collapsible:hover {
     background-color: #ccc;
 }
+
+
+
+/* Styling of the heatmap images into a nice grid */
+.hm-row {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0px;
+    margin: 0px;
+}
+
+/* Create four equal columns that sits next to each other */
+.hm-column {
+    flex: 25%;
+    max-width: 25%;
+    padding: 0px;
+    margin: 0px;
+}
+
+.hm-column img {
+    vertical-align: middle;
+    width: 100%;
+}
