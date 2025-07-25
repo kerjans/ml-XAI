@@ -81,8 +81,12 @@ const submitJob = function () {
     });
 };
 
-const updateDataset = function (dataset) {
-    fetch("DatasetHandler", {
+const get_current_job_id = function () {
+    return document.getElementById("job-id-input").value;
+};
+
+const retrieveResults = function (dataset) {
+    fetch("WispOverviewPage", {
 
         method: "POST",
         headers: {
@@ -91,9 +95,8 @@ const updateDataset = function (dataset) {
 
         ,
         body: JSON.stringify({
-            "csv": dataset
+            "job_id": get_current_job_id()
         })
-
     }).then(res => res.json()).then(res => {
         console.log("Request complete! response:", res);
         const status = res["status"];
@@ -101,10 +104,10 @@ const updateDataset = function (dataset) {
         if (status == "success") {
 
             IMAGES = res["images"];
-            MOLECULE_IMAGES = res["molecule_images"];
+            //MOLECULE_IMAGES = res["molecule_images"];
 
             refreshFirstPage();
-            refreshSecondPage();
+            //refreshSecondPage();
         }
 
         else {

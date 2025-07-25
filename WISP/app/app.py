@@ -145,7 +145,6 @@ def mol_to_image(mol, width=300, height=300) -> "Image":
     return deepcopy(img)
 
 
-#from WISP.WISP import WISP # :D
 class MoleculePage(BaseHandler):
     @log_function_call
     def post(self):
@@ -175,6 +174,36 @@ class MoleculePage(BaseHandler):
         resp = json.dumps(
             {
                 "mol_images": mol_images,
+                "status": "success",
+            }
+        )
+        self.write(resp)
+
+class HeatMaps(BaseHandler):
+    @log_function_call
+    def post(self):
+        req = json.loads(self.request.body)
+        print("req:",req)
+
+        job_id = req["job_id"]
+
+        here = Path(__file__).parent
+        working_dir = here / "working_dir" / f"{job_id}"
+        heat_maps_dir = working_dir / "HeatMaps"
+
+        meta_fle = working_dir / "metadata.json"
+        meta_df = json.loads(meta_fle.read_text())
+
+        heat_maps = []
+        if heat_maps_dir.exists():
+            for png_fle in heat_maps_dir.glob("*.png"):
+                hex_data = png_fle.read_bytes()
+                img64 = base64.b64encode(hex_data).decode("utf-8")
+                heat_maps.append(img64)
+
+        resp = json.dumps(
+            {
+                "heat_maps": heat_maps,
                 "status": "success",
             }
         )
@@ -257,7 +286,7 @@ class JobSubmissionHandler(BaseHandler):
             req = json.loads(self.request.body)
             print("req:",req)
             csv = StringIO(req["csv"][0])
-            df = resilient_read_csv(csv).sample(256)
+            df = resilient_read_csv(csv)
 
             if df is not None:
                 smiles = resilient_read_smiles(df)
@@ -329,6 +358,8 @@ async def main():
             (r"/", MainHandler),
             (r"/JobSubmission", JobSubmissionHandler),
             (r"/GuessColumnsHandler", GuessColumnsHandler),
+            (r"/HeatMaps", HeatMaps),
+            (r"/WispOverviewPage", WispOverviewPage),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
         ],
         autoreload=True,
