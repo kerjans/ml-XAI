@@ -169,7 +169,7 @@ button {
     transition: border-color 0.3s;
 }
 
-button:active {
+button:active:not(.collapsible) {
     transform: translateY(4px);
 }
 
