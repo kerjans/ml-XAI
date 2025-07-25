@@ -199,11 +199,16 @@ class HeatMaps(BaseHandler):
             for png_fle in heat_maps_dir.glob("*.png"):
                 hex_data = png_fle.read_bytes()
                 img64 = base64.b64encode(hex_data).decode("utf-8")
-                heat_maps.append(img64)
+
+                if "legend" in png_fle.name.lower():
+                    legend = img64
+                else:
+                    heat_maps.append(img64)
 
         resp = json.dumps(
             {
-                "heat_maps": heat_maps,
+                "legend": legend,
+                "heatmaps": heat_maps,
                 "status": "success",
             }
         )
@@ -217,8 +222,11 @@ class WispOverviewPage(BaseHandler):
 
         images = {}
         
-        result_dir = Path(__file__).parent.parent.parent / "example_images"
-        for img_fle in result_dir.glob("*.png"):
+        job_id = req["job_id"]
+
+        here = Path(__file__).parent
+        working_dir = here / "working_dir" / f"{job_id}"
+        for img_fle in working_dir.glob("*.png"):
             img = Image.open(img_fle)
             output = io.BytesIO()
             img.save(output, format="png")

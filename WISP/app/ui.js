@@ -113,7 +113,38 @@ const retrieveResults = function (dataset) {
         else {
             alert("failure could not parse input!");
         }
-    });
+    }).then(
+
+        fetch("HeatMaps", {
+
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            }
+
+            ,
+            body: JSON.stringify({
+                "job_id": get_current_job_id()
+            })
+        }).then(res => res.json()).then(res => {
+            console.log("Request complete! response:", res);
+            const status = res["status"];
+
+            if (status == "success") {
+
+                //IMAGES = res["images"];
+                MOLECULE_IMAGES = res["heatmaps"];
+
+                //refreshFirstPage();
+                refreshSecondPage();
+            }
+
+            else {
+                alert("failure could not parse input!");
+            }
+        }
+        )
+    );
 };
 
 const styleImage = function (img) {
@@ -173,38 +204,41 @@ const refreshFirstPage = function () {
     const cp2 = document.createElement("div");
     cp2.style.display = "table-row";
 
-    // Top Left -- How well can we explain predictions?
-    const examples_div = document.createElement("div");
-    const examples_label = document.createElement("div");
-    examples_label.innerText = "Molecular explanation examples:";
-    const examples_img = document.createElement('img');
 
-    const col3 = "positive_examples_Atom Attributions-Training.png";
-    examples_img.src = "data:image/png;base64," + IMAGES[col3];
-    styleImage(examples_img);
-    examples_img.style.width = "600px";
+    if (false) {
+        // Top Left -- How well can we explain predictions?
+        const examples_div = document.createElement("div");
+        const examples_label = document.createElement("div");
+        examples_label.innerText = "Molecular explanation examples:";
+        const examples_img = document.createElement('img');
 
-    examples_div.appendChild(examples_label);
-    const slider_div = document.createElement("div");
-    slider_div.innerHTML = ` <input type="range" style="width: 200px;" id="saturation-slider" min="0" max="10000" value="100">`;
-    const slider = slider_div.children[0];
+        const col3 = "positive_examples_Atom Attributions-Training.png";
+        examples_img.src = "data:image/png;base64," + IMAGES[col3];
+        styleImage(examples_img);
+        examples_img.style.width = "600px";
 
-    slider.addEventListener('input', function () {
-        const saturationValue = slider.value;
+        examples_div.appendChild(examples_label);
+        const slider_div = document.createElement("div");
+        slider_div.innerHTML = ` <input type="range" style="width: 200px;" id="saturation-slider" min="0" max="10000" value="100">`;
+        const slider = slider_div.children[0];
 
-        examples_img.style.filter = `saturate($ {
+        slider.addEventListener('input', function () {
+            const saturationValue = slider.value;
+
+            examples_img.style.filter = `saturate($ {
                             saturationValue
                         }
 
                         %)`;
-    });
-    examples_div.appendChild(slider_div);
-    examples_div.appendChild(examples_img);
+        });
+        examples_div.appendChild(slider_div);
+        examples_div.appendChild(examples_img);
 
-    examples_div.style.display = "inline";
-    examples_div.style.display = "table-cell";
-    examples_div.style.width = "350px";
-    cp2.appendChild(examples_div);
+        examples_div.style.display = "inline";
+        examples_div.style.display = "table-cell";
+        examples_div.style.width = "350px";
+        cp2.appendChild(examples_div);
+    }
 
     tab.append(cp);
 
@@ -230,6 +264,7 @@ const refreshSecondPage = function () {
         //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
         //document.getElementById("pngImage").src = "data:image/png;base64," + image;
         imgElement.src = "data:image/png;base64," + image;
+        styleImage(imgElement);
         cp.appendChild(imgElement);
     }
 }
