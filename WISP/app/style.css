@@ -237,5 +237,47 @@ button {
 
 .hm-column img {
     vertical-align: middle;
+    width: 2px;
+}
+
+
+/* 
+Using approach described in:
+    https://www.bram.us/2020/07/28/simple-image-gallery-with-display-grid-and-object-fit-cover/
+to implement the heatmap image gallery
+*/
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+ul.gallery {
+    --numcolumns: 4;
+    --gap: 0.25em;
+    --size: calc(100% / var(--numcolumns));
+    display: grid;
+    grid-template-columns: repeat(var(--numcolumns), 1fr);
+
+    grid-template-rows: auto;
+    gap: var(--gap);
+    align-items: stretch;
+
+    list-style: none;
+}
+
+ul.gallery>li {
+    display: block;
+    height: calc(var(--size) - var(--gap));
+}
+
+ul.gallery>li img {
+    display: block;
     width: 100%;
+    height: 150px;
+    object-fit: cover;
+}
+
+img:hover {
+    transform: scale(2.0)
 }

@@ -134,6 +134,7 @@ const retrieveResults = function (dataset) {
 
                 //IMAGES = res["images"];
                 MOLECULE_IMAGES = res["heatmaps"];
+                LEGEND_IMAGE = res["legend"];
 
                 //refreshFirstPage();
                 refreshSecondPage();
@@ -253,21 +254,24 @@ PAGE_SIZE = 16
 COL_SIZE = 4
 CURRENT_PAGE = 0;
 MOLECULE_IMAGES = [];
+LEGEND_IMAGE = null;
 
 const refreshSecondPage = function () {
     const cp = document.getElementById("result-div-2");
     cp.innerHTML = "";
     const startP = CURRENT_PAGE * PAGE_SIZE;
 
-    const div_row = document.createElement("div");
-    div_row.classList.add("hm-row");
-    var div_col = document.createElement("div");
+    const div_gallery = document.createElement("div");
+    const imgLeg = document.createElement('img');
+    imgLeg.src = "data:image/png;base64," + LEGEND_IMAGE;
+    imgLeg.style.width = "150px";
+
+    div_gallery.appendChild(imgLeg)
+
+    const elt_ul = document.createElement("ul");
+
+    elt_ul.classList.add("gallery");
     for (var q = 0; q < PAGE_SIZE; q++) {
-        if (q % COL_SIZE == 0) {
-            div_col = document.createElement("div");
-            div_col.classList.add("hm-col");
-            div_row.appendChild(div_col);
-        }
         const image = MOLECULE_IMAGES[q + startP];
         const imgElement = document.createElement('img');
         //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
@@ -276,9 +280,12 @@ const refreshSecondPage = function () {
         //styleImage(imgElement);
         imgElement.style.width = "150px";
 
-        div_col.appendChild(imgElement);
+        const elt_li = document.createElement("li");
+        elt_li.appendChild(imgElement)
+        elt_ul.appendChild(elt_li)
     }
-    cp.appendChild(div_row);
+    div_gallery.appendChild(elt_ul);
+    cp.appendChild(div_gallery);
 }
 
 
