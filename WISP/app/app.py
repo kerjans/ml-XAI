@@ -361,7 +361,6 @@ class JobSubmissionHandler(BaseHandler):
                 input_fle = working_dir / f"input_{job_id}.csv"
                 df_new.to_csv(input_fle)
 
-                print("SKIPPING ACTUAL CALCS")
                 if True:
                     loop = asyncio.get_running_loop()
                     _ = loop.run_in_executor(
