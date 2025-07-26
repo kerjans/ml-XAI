@@ -176,11 +176,13 @@ button:active:not(.collapsible) {
 .primary-button {
     background-color: #2c63e7ff;
     color: #ffffff;
+    cursor: pointer;
 }
 
 .active-job-button {
     background-color: rgb(86, 108, 160);
     color: #ffffff;
+    cursor: pointer;
 }
 
 .nav-button {

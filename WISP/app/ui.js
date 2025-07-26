@@ -101,12 +101,11 @@ function uniq(a) {
 
 const addJob = function (job_id) {
     jobs = JSON.parse(localStorage.getItem("jobs"));
-    alert(jobs);
     if (jobs === null) {
         jobs = [];
     }
     jobs.push(job_id);
-    jobs = uniq(jobs);
+    jobs = uniq(jobs).reverse();
     localStorage.setItem("jobs", JSON.stringify(jobs));
 };
 

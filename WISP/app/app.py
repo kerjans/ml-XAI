@@ -275,11 +275,14 @@ class GuessColumnsHandler(BaseHandler):
 
 
 from WISP.WISP import WISP # :o
-def run_wisp(args):
+def run_wisp(args,metafle):
     print("START","run_wisp")
     #time.sleep(20)
     WISP(**args)
     print("END","run_wisp")
+    metadat = json.loads(metafle.read_text())
+    metadat["status"] = "done"
+    metafle.write_text(json.dumps(metadat))
     return
 
 
@@ -303,12 +306,21 @@ class JobStatusHandler(BaseHandler):
         )
         self.write(resp)
 
+
+from datetime import datetime
+import uuid
+def generate_job_id():
+    return "__".join(
+        [
+            datetime.today().strftime('%Y_%m_%d_%H_%M_%S'),
+            uuid.uuid4().hex,
+         ])
+
 class JobSubmissionHandler(BaseHandler):
     @log_function_call
     async def post(self):
 
-        # guaranteeed random looking choice 
-        job_id = random.choice(["42","123","69","666",])
+        job_id = generate_job_id()
 
         try:
             req = json.loads(self.request.body)
@@ -350,7 +362,7 @@ class JobSubmissionHandler(BaseHandler):
                 df_new.to_csv(input_fle)
 
                 print("SKIPPING ACTUAL CALCS")
-                if False:
+                if True:
                     loop = asyncio.get_running_loop()
                     _ = loop.run_in_executor(
                         PROCESS_POOL, run_wisp, 
@@ -362,12 +374,9 @@ class JobSubmissionHandler(BaseHandler):
                             "Smiles_Column_Name":smiles_col,
                             "Target_Column_Name":target_col,
                             "use_GNN":False,
-                            }, 
+                            },  metafle
                     )
 
-                metadat = json.loads(metafle.read_text())
-                metadat["status"] = "done"
-                metafle.write_text(json.dumps(metadat))
 
             resp = json.dumps(
                 {
