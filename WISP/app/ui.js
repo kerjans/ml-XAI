@@ -51,6 +51,64 @@ const drop = function (evt) {
 
 IMAGES = [];
 
+const renderJobs = function () {
+    const elt = document.getElementById("job-list");
+    elt.innerHTML = "";
+    const jobs = JSON.parse(localStorage.getItem("jobs"));
+    jobs.forEach(
+        function (job) {
+            const b = document.createElement("button");
+            b.classList.add("primary-button");
+            b.classList.add("job-buttons");
+            b.innerText = job;
+            b.onclick = function (args) {
+                Array.from(document.getElementsByClassName("job-buttons")).forEach(elt => elt.classList.remove("active-job-button"));
+                b.classList.add("active-job-button");
+                retrieveResults(job);
+            };
+            const bd = document.createElement("div");
+            bd.appendChild(b);
+
+            fetch("JobStatus", {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    "job_id": job
+                })
+
+            }).then(res => res.json()).then(res => {
+                console.log("Request complete! response:", res);
+                const status = res["job_status"];
+                const status_label = document.createElement("p");
+                status_label.style.display = "inline";
+                status_label.style.marginLeft = "10px";
+                status_label.innerText = status;
+                bd.appendChild(status_label);
+                elt.appendChild(bd);
+            });
+        }
+    );
+};
+
+
+function uniq(a) {
+    return a.sort().filter(function (item, pos, ary) {
+        return !pos || item != ary[pos - 1];
+    });
+}
+
+const addJob = function (job_id) {
+    jobs = JSON.parse(localStorage.getItem("jobs"));
+    if (jobs === null) {
+        jobs = [];
+    }
+    jobs.push(job_id);
+    jobs = uniq(jobs).reverse();
+    localStorage.setItem("jobs", JSON.stringify(jobs));
+};
+
 const submitJob = function () {
     const but = document.getElementById("submit-button");
     but.disabled = true;
@@ -70,7 +128,8 @@ const submitJob = function () {
         const status = res["status"];
 
         if (status == "success") {
-            document.getElementById("job-id-input").value = res["job_id"];
+            addJob(res["job_id"]);
+            renderJobs();
             but.disabled = false;
             but.style.opacity = 1.0;
         }
@@ -81,8 +140,9 @@ const submitJob = function () {
     });
 };
 
-const updateDataset = function (dataset) {
-    fetch("DatasetHandler", {
+const retrieveResults = function (job_id) {
+
+    fetch("WispOverviewPage", {
 
         method: "POST",
         headers: {
@@ -91,9 +151,8 @@ const updateDataset = function (dataset) {
 
         ,
         body: JSON.stringify({
-            "csv": dataset
+            "job_id": job_id
         })
-
     }).then(res => res.json()).then(res => {
         console.log("Request complete! response:", res);
         const status = res["status"];
@@ -101,16 +160,48 @@ const updateDataset = function (dataset) {
         if (status == "success") {
 
             IMAGES = res["images"];
-            MOLECULE_IMAGES = res["molecule_images"];
+            //MOLECULE_IMAGES = res["molecule_images"];
 
             refreshFirstPage();
-            refreshSecondPage();
+            //refreshSecondPage();
         }
 
         else {
             alert("failure could not parse input!");
         }
-    });
+    }).then(
+
+        fetch("HeatMaps", {
+
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            }
+
+            ,
+            body: JSON.stringify({
+                "job_id": job_id
+            })
+        }).then(res => res.json()).then(res => {
+            console.log("Request complete! response:", res);
+            const status = res["status"];
+
+            if (status == "success") {
+
+                //IMAGES = res["images"];
+                MOLECULE_IMAGES = res["heatmaps"];
+                LEGEND_IMAGE = res["legend"];
+
+                //refreshFirstPage();
+                refreshSecondPage();
+            }
+
+            else {
+                alert("failure could not parse input!");
+            }
+        }
+        )
+    );
 };
 
 const styleImage = function (img) {
@@ -135,6 +226,7 @@ const refreshFirstPage = function () {
     const explain_pred_label = document.createElement("div");
     explain_pred_label.innerText = "How well can we explain predictions?";
     const explain_pred_img = document.createElement('img');
+    explain_pred_img.classList.add("zoomable");
 
     const col = "PREDvsCONTRIBUTIONSfragmentAtom Attributions_Training_Set.png";
     explain_pred_img.src = "data:image/png;base64," + IMAGES[col];
@@ -154,6 +246,8 @@ const refreshFirstPage = function () {
     explain_exp_label.innerText = "How well can we explain reality?";
     const explain_exp_img = document.createElement('img');
 
+    explain_exp_img.classList.add("zoomable");
+
     const col2 = "EXPvsCONTRIBUTIONSwholeAtom Attributions_Test_Set.png";
     explain_exp_img.src = "data:image/png;base64," + IMAGES[col2];
     styleImage(explain_exp_img);
@@ -170,38 +264,41 @@ const refreshFirstPage = function () {
     const cp2 = document.createElement("div");
     cp2.style.display = "table-row";
 
-    // Top Left -- How well can we explain predictions?
-    const examples_div = document.createElement("div");
-    const examples_label = document.createElement("div");
-    examples_label.innerText = "Molecular explanation examples:";
-    const examples_img = document.createElement('img');
 
-    const col3 = "positive_examples_Atom Attributions-Training.png";
-    examples_img.src = "data:image/png;base64," + IMAGES[col3];
-    styleImage(examples_img);
-    examples_img.style.width = "600px";
+    if (false) {
+        // Top Left -- How well can we explain predictions?
+        const examples_div = document.createElement("div");
+        const examples_label = document.createElement("div");
+        examples_label.innerText = "Molecular explanation examples:";
+        const examples_img = document.createElement('img');
 
-    examples_div.appendChild(examples_label);
-    const slider_div = document.createElement("div");
-    slider_div.innerHTML = ` <input type="range" style="width: 200px;" id="saturation-slider" min="0" max="10000" value="100">`;
-    const slider = slider_div.children[0];
+        const col3 = "positive_examples_Atom Attributions-Training.png";
+        examples_img.src = "data:image/png;base64," + IMAGES[col3];
+        styleImage(examples_img);
+        examples_img.style.width = "600px";
 
-    slider.addEventListener('input', function () {
-        const saturationValue = slider.value;
+        examples_div.appendChild(examples_label);
+        const slider_div = document.createElement("div");
+        slider_div.innerHTML = ` <input type="range" style="width: 200px;" id="saturation-slider" min="0" max="10000" value="100">`;
+        const slider = slider_div.children[0];
 
-        examples_img.style.filter = `saturate($ {
+        slider.addEventListener('input', function () {
+            const saturationValue = slider.value;
+
+            examples_img.style.filter = `saturate($ {
                             saturationValue
                         }
 
                         %)`;
-    });
-    examples_div.appendChild(slider_div);
-    examples_div.appendChild(examples_img);
+        });
+        examples_div.appendChild(slider_div);
+        examples_div.appendChild(examples_img);
 
-    examples_div.style.display = "inline";
-    examples_div.style.display = "table-cell";
-    examples_div.style.width = "350px";
-    cp2.appendChild(examples_div);
+        examples_div.style.display = "inline";
+        examples_div.style.display = "table-cell";
+        examples_div.style.width = "350px";
+        cp2.appendChild(examples_div);
+    }
 
     tab.append(cp);
 
@@ -212,23 +309,80 @@ const refreshFirstPage = function () {
 // An example showing how one could display molecules
 // in a grid. Not needed any more, just for reference
 // pagination handling of images
-PAGE_SIZE = 4
+PAGE_SIZE = 16
+COL_SIZE = 4
 CURRENT_PAGE = 0;
 MOLECULE_IMAGES = [];
+LEGEND_IMAGE = null;
 
 const refreshSecondPage = function () {
     const cp = document.getElementById("result-div-2");
     cp.innerHTML = "";
     const startP = CURRENT_PAGE * PAGE_SIZE;
 
+    const div_gallery = document.createElement("div");
+
+    const but_div = document.createElement("div");
+    const but_left = document.createElement("button");
+    const N_PAGES = Math.ceil(MOLECULE_IMAGES.length / PAGE_SIZE);
+    but_left.id = "left-button";
+    but_left.innerText = "<";
+    const but_right = document.createElement("button");
+    but_right.id = "right-button";
+    but_right.innerText = ">";
+
+    const page_label = document.createElement("p");
+    page_label.innerText = `${CURRENT_PAGE + 1} / ${N_PAGES}`;
+    page_label.style.color = "black";
+    page_label.style.display = "inline";
+
+    but_left.classList.add("nav-button");
+    but_right.classList.add("nav-button");
+
+    but_left.onclick = function (evt) {
+        CURRENT_PAGE = Math.max(0, CURRENT_PAGE - 1);
+        refreshSecondPage();
+    };
+    but_right.onclick = function (evt) {
+        CURRENT_PAGE = Math.min(N_PAGES - 1, CURRENT_PAGE + 1);
+        refreshSecondPage();
+    };
+
+    but_div.style.position = "absolute";
+    but_div.style.top = "-2%";
+    but_div.style.right = "-2%";
+    but_div.appendChild(but_left);
+    but_div.appendChild(page_label);
+    but_div.appendChild(but_right);
+    div_gallery.appendChild(but_div);
+
+    const imgLeg = document.createElement('img');
+    imgLeg.src = "data:image/png;base64," + LEGEND_IMAGE;
+    imgLeg.style.width = "150px";
+    imgLeg.classList.add("zoomable");
+
+    div_gallery.appendChild(imgLeg)
+
+    const elt_ul = document.createElement("ul");
+
+    elt_ul.classList.add("gallery");
     for (var q = 0; q < PAGE_SIZE; q++) {
         const image = MOLECULE_IMAGES[q + startP];
         const imgElement = document.createElement('img');
         //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
         //document.getElementById("pngImage").src = "data:image/png;base64," + image;
-        imgElement.src = "data:image/png;base64," + image;
-        cp.appendChild(imgElement);
+        if (image) {
+            imgElement.src = "data:image/png;base64," + image;
+        }
+        //styleImage(imgElement);
+        imgElement.style.width = "150px";
+
+        const elt_li = document.createElement("li");
+        elt_li.appendChild(imgElement)
+        elt_ul.appendChild(elt_li)
     }
+    div_gallery.appendChild(elt_ul);
+    cp.appendChild(div_gallery);
 }
 
 
@@ -281,3 +435,7 @@ window.onload = () => {
     // initialize state properly
     coll[0].click();
 };
+
+window.addEventListener("load", (event) => {
+    renderJobs();
+});

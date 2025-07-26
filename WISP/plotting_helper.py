@@ -224,7 +224,7 @@ def generate_heatmap(data, index, output_dir, smiles_column, attribution_column,
         return
 
     # Draw similarity map
-    draw2d = Draw.MolDraw2DCairo(900, 900)
+    draw2d = Draw.MolDraw2DCairo(300, 300) # changed to 300x300 to decrease file sizes!
     d = GetSimilarityMapFromWeightsWithScale(mol, attributions, draw2d, '#10384f', '#9C0D38', vmin, vmax)
     d.FinishDrawing()
 
