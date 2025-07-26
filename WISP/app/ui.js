@@ -51,6 +51,36 @@ const drop = function (evt) {
 
 IMAGES = [];
 
+const renderJobs = function () {
+    const elt = document.getElementById("job-list");
+    elt.innerHTML = "";
+    const jobs = JSON.parse(localStorage.getItem("jobs"));
+    jobs.forEach(
+        function (job) {
+            const b = document.createElement("button");
+            b.classList.add("primary-button");
+            b.classList.add("job-buttons");
+            b.innerText = job;
+            b.onclick = function (args) {
+                Array.from(document.getElementsByClassName("job-buttons")).forEach(elt => elt.classList.remove("active-job-button"));
+                b.classList.add("active-job-button");
+                retrieveResults(job);
+            };
+            elt.appendChild(b);
+        }
+    );
+};
+
+const addJob = function (job_id) {
+    jobs = JSON.parse(localStorage.getItem("jobs"));
+    alert(jobs);
+    if (jobs === null) {
+        jobs = [];
+    }
+    jobs.push(job_id);
+    localStorage.setItem("jobs", JSON.stringify(jobs));
+};
+
 const submitJob = function () {
     const but = document.getElementById("submit-button");
     but.disabled = true;
@@ -70,7 +100,8 @@ const submitJob = function () {
         const status = res["status"];
 
         if (status == "success") {
-            document.getElementById("job-id-input").value = res["job_id"];
+            addJob(res["job_id"]);
+            renderJobs();
             but.disabled = false;
             but.style.opacity = 1.0;
         }
@@ -81,11 +112,7 @@ const submitJob = function () {
     });
 };
 
-const get_current_job_id = function () {
-    return document.getElementById("job-id-input").value;
-};
-
-const retrieveResults = function (dataset) {
+const retrieveResults = function (job_id) {
 
     fetch("WispOverviewPage", {
 
@@ -96,7 +123,7 @@ const retrieveResults = function (dataset) {
 
         ,
         body: JSON.stringify({
-            "job_id": get_current_job_id()
+            "job_id": job_id
         })
     }).then(res => res.json()).then(res => {
         console.log("Request complete! response:", res);
@@ -125,7 +152,7 @@ const retrieveResults = function (dataset) {
 
             ,
             body: JSON.stringify({
-                "job_id": get_current_job_id()
+                "job_id": job_id
             })
         }).then(res => res.json()).then(res => {
             console.log("Request complete! response:", res);
@@ -380,3 +407,4 @@ window.onload = () => {
     // initialize state properly
     coll[0].click();
 };
+

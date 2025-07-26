@@ -283,6 +283,26 @@ def run_wisp(args):
     return
 
 
+class JobStatusHandler(BaseHandler):
+    @log_function_call
+    def post(self):
+        req = json.loads(self.request.body)
+        print("req:",req)
+
+        job_id = req["job_id"]
+
+        here = Path(__file__).parent
+        working_dir = here / "working_dir" / f"{job_id}"
+        metafle = working_dir / "metadata.json"
+        metadat = json.loads(metafle.read_text())
+
+        resp = json.dumps(
+            {
+                "job_status": metadat["status"],
+            }
+        )
+        self.write(resp)
+
 class JobSubmissionHandler(BaseHandler):
     @log_function_call
     async def post(self):
@@ -322,25 +342,32 @@ class JobSubmissionHandler(BaseHandler):
                             "smiles": smiles,
                             "target": target,
                             "job_id": job_id,
+                            "status": "running",
                         }
                 metafle.write_text(json.dumps(metadat))
 
                 input_fle = working_dir / f"input_{job_id}.csv"
                 df_new.to_csv(input_fle)
 
-                loop = asyncio.get_running_loop()
-                _ = loop.run_in_executor(
-                    PROCESS_POOL, run_wisp, 
-                    {
-                        # fix for internal wisp processing problems
-                        "working_dir":str(working_dir)+str(os.path.sep), 
-                        "input_dir":str(input_fle),
-                        "ID_Column_Name":id_col,
-                        "Smiles_Column_Name":smiles_col,
-                        "Target_Column_Name":target_col,
-                        "use_GNN":False,
-                        },
-                )
+                print("SKIPPING ACTUAL CALCS")
+                if False:
+                    loop = asyncio.get_running_loop()
+                    _ = loop.run_in_executor(
+                        PROCESS_POOL, run_wisp, 
+                        {
+                            # fix for internal wisp processing problems
+                            "working_dir":str(working_dir)+str(os.path.sep), 
+                            "input_dir":str(input_fle),
+                            "ID_Column_Name":id_col,
+                            "Smiles_Column_Name":smiles_col,
+                            "Target_Column_Name":target_col,
+                            "use_GNN":False,
+                            }, 
+                    )
+
+                metadat = json.loads(metafle.read_text())
+                metadat["status"] = "done"
+                metafle.write_text(json.dumps(metadat))
 
             resp = json.dumps(
                 {
@@ -365,6 +392,7 @@ async def main():
         [
             (r"/", MainHandler),
             (r"/JobSubmission", JobSubmissionHandler),
+            (r"/JobStatus", JobStatusHandler),
             (r"/GuessColumnsHandler", GuessColumnsHandler),
             (r"/HeatMaps", HeatMaps),
             (r"/WispOverviewPage", WispOverviewPage),
