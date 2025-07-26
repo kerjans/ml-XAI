@@ -66,10 +66,38 @@ const renderJobs = function () {
                 b.classList.add("active-job-button");
                 retrieveResults(job);
             };
-            elt.appendChild(b);
+            const bd = document.createElement("div");
+            bd.appendChild(b);
+
+            fetch("JobStatus", {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    "job_id": job
+                })
+
+            }).then(res => res.json()).then(res => {
+                console.log("Request complete! response:", res);
+                const status = res["job_status"];
+                const status_label = document.createElement("p");
+                status_label.style.display = "inline";
+                status_label.style.marginLeft = "10px";
+                status_label.innerText = status;
+                bd.appendChild(status_label);
+                elt.appendChild(bd);
+            });
         }
     );
 };
+
+
+function uniq(a) {
+    return a.sort().filter(function (item, pos, ary) {
+        return !pos || item != ary[pos - 1];
+    });
+}
 
 const addJob = function (job_id) {
     jobs = JSON.parse(localStorage.getItem("jobs"));
@@ -78,6 +106,7 @@ const addJob = function (job_id) {
         jobs = [];
     }
     jobs.push(job_id);
+    jobs = uniq(jobs);
     localStorage.setItem("jobs", JSON.stringify(jobs));
 };
 
@@ -408,3 +437,6 @@ window.onload = () => {
     coll[0].click();
 };
 
+window.addEventListener("load", (event) => {
+    renderJobs();
+});
