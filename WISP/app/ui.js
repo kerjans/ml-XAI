@@ -609,12 +609,13 @@ const renderMMPOverview = function (data) {
                         .attr("r", 6)
                         .attr("fill", "red");
 
-                    d3.select("#tooltip")
+                    const toolt = d3.select("#tooltip")
                         .style("opacity", 1)
-                        .html(`target_diff: ${value.toFixed(3)} ${displaySmiles(g.smiles_1[i])} => ${displaySmiles(g.smiles_2[i])}`)
+                        .html(`<p style="margin:0px; padding:0px;">target_diff: ${value.toFixed(3)}</p> ${displaySmiles(g.smiles_1[i])} <p class="mmp-arrow"> => </p> ${displaySmiles(g.smiles_2[i])}`)
                         .style("left", `${event.pageX + 10}px`)
-                        .style("top", `${event.pageY - 20}px`)
-                        .selectAll("*").style("width", "150px").style("height", "150px");
+                        .style("top", `${event.pageY - 20}px`);
+                    toolt.selectAll("svg").style("width", "150px").style("height", "150px").style("margin", "5px");
+                    toolt.selectAll(".mmp-arrow").style("position", "absolute").style("top", "50%").style("left", "48%");
                 })
                 .on("mouseout", function () {
                     d3.select(this)
