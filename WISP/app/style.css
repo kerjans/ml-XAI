@@ -318,3 +318,12 @@ ul.gallery>li img:hover {
     font-size: 12px;
     alignment-baseline: middle;
 }
+
+/* Scrollable container for SVG */
+.chart-container {
+    width: 100%;
+    height: 400px;
+    /* visible height */
+    overflow-y: auto;
+    border: 1px solid #ccc;
+}
