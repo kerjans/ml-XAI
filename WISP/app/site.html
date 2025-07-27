@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Molecular XAI</title>
     <link rel="stylesheet" type="text/css" href="/static/style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@rdkit/rdkit@2025.3.4-1.0.0/dist/RDKit_minimal.min.js"></script>
     <script src="/static/ui.js"></script>
 </head>
 
@@ -56,8 +58,9 @@
 
                 <div style="position: absolute; top: 0%;">
                     <button class="collapsiblex">Jobs</button>
-                    <button class="collapsiblex">Overview</button>
                     <button class="collapsiblex">Evaluation</button>
+                    <button class="collapsiblex">Atom Contributions</button>
+                    <button class="collapsiblex">MMP Overview</button>
                 </div>
 
                 <div style="position: absolute;">
@@ -82,9 +85,18 @@
                     <div id="result-div-2">
 
                     </div>
+
+                    <div id="result-div-3">
+                        <div class="chart-container">
+                            <svg width="700" height="3000" id="mmp-overview"></svg>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
+    <div id="tooltip"
+        style="position: absolute; background: white; border: 1px solid #ccc; padding: 6px; font-size: 12px; pointer-events: none; opacity: 0;">
     </div>
 </body>
 

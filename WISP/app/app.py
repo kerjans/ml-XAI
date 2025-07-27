@@ -145,6 +145,33 @@ def mol_to_image(mol, width=300, height=300) -> "Image":
     return deepcopy(img)
 
 
+class MMPOverview(BaseHandler):
+    @log_function_call
+    def post(self):
+        req = json.loads(self.request.body)
+        job_id = req["job_id"]
+        here = Path(__file__).parent
+        working_dir = here / "working_dir" / f"{job_id}"
+
+        mmp_fle = working_dir / "MMPs_with_attributions.csv"
+        df = pd.read_csv(mmp_fle)
+
+        # df columns:
+        # smiles_1,smiles_2,ID_1,ID_2,transformation,constant,constant_atom_count,Atom Attributions_1,Atom Attributions_2,target_1,target_2
+        df["target_diff"] = df["target_2"] - df["target_1"]
+
+        resp = json.dumps(
+            {
+                "mmp_overview_data": json.dumps(
+                    [
+                        {"MMP_rule":row["transformation"],"target_diff":row["target_diff"],"smiles_1":row["smiles_1"],"smiles_2":row["smiles_2"]}
+                        for _,row in df.iterrows()
+                     ]),
+                "status": "success",
+            }
+        )
+        self.write(resp)
+
 class MoleculePage(BaseHandler):
     @log_function_call
     def post(self):
@@ -404,6 +431,7 @@ async def main():
             (r"/GuessColumnsHandler", GuessColumnsHandler),
             (r"/HeatMaps", HeatMaps),
             (r"/WispOverviewPage", WispOverviewPage),
+            (r"/MMPOverview", MMPOverview),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
         ],
         autoreload=True,

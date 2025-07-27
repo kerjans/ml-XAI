@@ -303,3 +303,29 @@ ul.gallery>li img:hover {
 .zoomable:hover {
     transform: scale(1.5);
 }
+
+
+.area {
+    /*fill: steelblue;*/
+    opacity: 0.6;
+}
+
+.axis-label {
+    font-size: 12px;
+}
+
+.group-label {
+    font-size: 12px;
+    alignment-baseline: middle;
+}
+
+/* Scrollable container for SVG */
+.chart-container {
+    width: 100%;
+    height: 600px;
+    /* visible height */
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    background-color: white;
+
+}

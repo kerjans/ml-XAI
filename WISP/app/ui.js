@@ -140,6 +140,7 @@ const submitJob = function () {
     });
 };
 
+MMP_OVERVIEW_DATA = [];
 const retrieveResults = function (job_id) {
 
     fetch("WispOverviewPage", {
@@ -176,9 +177,7 @@ const retrieveResults = function (job_id) {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json'
-            }
-
-            ,
+            },
             body: JSON.stringify({
                 "job_id": job_id
             })
@@ -201,6 +200,34 @@ const retrieveResults = function (job_id) {
             }
         }
         )
+    ).then(
+        fetch("MMPOverview", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                "job_id": job_id
+            })
+        }).then(res => res.json()).then(res => {
+            console.log("Request complete! response:", res);
+            const status = res["status"];
+
+            if (status == "success") {
+                //IMAGES = res["images"];
+                MMP_OVERVIEW_DATA = res["mmp_overview_data"];
+                if (typeof MMP_OVERVIEW_DATA === 'string' || MMP_OVERVIEW_DATA instanceof String)
+                    MMP_OVERVIEW_DATA = JSON.parse(MMP_OVERVIEW_DATA);
+
+                //refreshFirstPage();
+                //refreshSecondPage();
+                renderMMPOverview(MMP_OVERVIEW_DATA);
+            }
+
+            else {
+                alert("failure could not parse input!");
+            }
+        })
     );
 };
 
@@ -414,7 +441,7 @@ window.onload = () => {
     coll = document.getElementsByClassName("collapsiblex");
     i = 0;
 
-    const contents = { "Jobs": "job-id-div", "Overview": "result-div", "Evaluation": "result-div-2" }
+    const contents = { "Jobs": "job-id-div", "Evaluation": "result-div", "Atom Contributions": "result-div-2", "MMP Overview": "result-div-3" }
     for (i = 0; i < coll.length; i++) {
         const elt = coll[i];
         const clicked_on = elt.innerText;
@@ -436,6 +463,193 @@ window.onload = () => {
     coll[0].click();
 };
 
+RDKit = null;
+
+initRDKitModule().then(function (instance) {
+    RDKit = instance;
+    console.log("RDKit loaded.");
+});
+
+const displaySmiles = function (smiles) {
+    const mol = RDKit.get_mol(smiles);
+    return mol.get_svg();
+};
+
+
+const renderMMPOverview = function (data) {
+
+    const svg = d3.select("#mmp-overview");
+    svg.selectAll("*").remove(); // Clear the canvas
+
+    //const margin = { top: 20, right: 30, bottom: 30, left: 120 };
+    const margin = { top: 40, right: 60, bottom: 60, left: 200 };
+
+
+
+    if (!data)
+        // Toy data: array of objects with target_diff and MMP_rule
+        data = [
+            { target_diff: 0.2, MMP_rule: 'Rule A' },
+            { target_diff: 0.4, MMP_rule: 'Rule A' },
+            { target_diff: 0.35, MMP_rule: 'Rule A' },
+            { target_diff: 0.5, MMP_rule: 'Rule A' },
+            { target_diff: 0.1, MMP_rule: 'Rule B' },
+            { target_diff: 0.12, MMP_rule: 'Rule B' },
+            { target_diff: 0.15, MMP_rule: 'Rule B' },
+            { target_diff: 0.18, MMP_rule: 'Rule B' },
+            { target_diff: 0.3, MMP_rule: 'Rule C' },
+            { target_diff: 0.28, MMP_rule: 'Rule C' },
+            { target_diff: 0.32, MMP_rule: 'Rule C' },
+            { target_diff: 0.34, MMP_rule: 'Rule C' }
+        ];
+
+    // Group by MMP_rule
+    var groups = Array.from(
+        d3.group(data, d => d.MMP_rule),
+        ([key, values]) => ({
+            MMP_rule: key,
+            values: values.map(d => d.target_diff),
+            smiles_1: values.map(d => d.smiles_1),
+            smiles_2: values.map(d => d.smiles_2),
+        })
+    );
+
+
+    // Sort alphabetically
+    // groups.sort((a, b) => d3.ascending(a.MMP_rule, b.MMP_rule));
+    // Sort by value
+    groups.sort((a, b) => d3.mean(a.values) - d3.mean(b.values));
+
+    // Keep only the top/bottom 10 elements
+    const top10 = groups.slice(-10); // highest means
+    const bottom10 = groups.slice(0, 10); // lowest means
+
+    // Merge and re-sort however you want (e.g., descending by mean)
+    const filter_top = false;
+    if (filter_top)
+        groups = [...bottom10, ...top10];
+
+    const rowHeight = 20;
+    const height = groups.length * rowHeight + margin.top + margin.bottom;
+
+    // Update the SVG height
+    svg.attr("height", height);
+
+    const width = +svg.attr("width");
+    //const height = +svg.attr("height");
+
+    const allDiffs = data.map(d => d.target_diff);
+
+    const x = d3.scaleLinear()
+        .domain(d3.extent(allDiffs))
+        .range([margin.left, width - margin.right]);
+
+    const y = d3.scaleBand()
+        .domain(groups.map(g => g.MMP_rule))
+        .range([margin.top, height - margin.bottom])
+        .paddingInner(0.3);
+
+    // This one here gave poor results:
+    // const kde = kernelDensityEstimator(kernelEpanechnikov(0.02), x.ticks(100));
+    const kde = kernelDensityEstimator(kernelGaussian(0.25), x.ticks(100));
+
+    const maxDensity = d3.max(groups, g => d3.max(kde(g.values), d => d[1]));
+
+    const AMPLIFICATION_FACTOR = 2.5;
+    const yScale = d3.scaleLinear()
+        .domain([0, maxDensity])
+        .range([0, y.bandwidth() * AMPLIFICATION_FACTOR]);
+
+    // X Axis
+    svg.append("g")
+        .attr("transform", `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).ticks(6))
+        .append("text")
+        .attr("x", width / 2)
+        .attr("y", 25)
+        .attr("fill", "black")
+        .attr("text-anchor", "middle")
+        .text("target_diff");
+
+    // Draw the curves
+    groups.forEach((g, i) => {
+        const density = kde(g.values);
+
+        const area = d3.area()
+            .x(d => x(d[0]))
+            .y0(y(g.MMP_rule) + y.bandwidth() / 2)
+            .y1(d => y(g.MMP_rule) + y.bandwidth() / 2 - yScale(d[1]))
+            .curve(d3.curveBasis);
+
+        svg.append("path")
+            .datum(density)
+            .attr("class", "area")
+            .attr("fill", i % 2 === 0 ? "#2452baff" : "#a2bff4ff") // alternate shades
+            .attr("d", area);
+
+        svg.append("text")
+            .attr("x", margin.left - 10)
+            .attr("y", y(g.MMP_rule) + y.bandwidth() / 2)
+            .attr("text-anchor", "end")
+            .attr("class", "group-label")
+            .text(g.MMP_rule);
+
+        // Scatterplot the single datapoints
+        g.values.forEach((value, i) => {
+            svg.append("circle")
+                .attr("cx", x(value))
+                .attr("cy", y(g.MMP_rule) + y.bandwidth() / 2) // vertically center
+                .attr("r", 3)
+                .attr("fill", "black")
+                .attr("opacity", 0.6)
+                .on("mouseover", function (event) {
+                    d3.select(this)
+                        .transition()
+                        .duration(150)
+                        .attr("r", 6)
+                        .attr("fill", "red");
+
+                    d3.select("#tooltip")
+                        .style("opacity", 1)
+                        .html(`target_diff: ${value.toFixed(3)} ${displaySmiles(g.smiles_1[i])} => ${displaySmiles(g.smiles_2[i])}`)
+                        .style("left", `${event.pageX + 10}px`)
+                        .style("top", `${event.pageY - 20}px`)
+                        .selectAll("*").style("width", "150px").style("height", "150px");
+                })
+                .on("mouseout", function () {
+                    d3.select(this)
+                        .transition()
+                        .duration(150)
+                        .attr("r", 3)
+                        .attr("fill", "black");
+
+                    d3.select("#tooltip")
+                        .style("opacity", 0);
+                });;
+        });
+    });
+
+
+    // KDE functions
+    function kernelDensityEstimator(kernel, X) {
+        return function (V) {
+            return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
+        };
+    }
+
+    function kernelEpanechnikov(k) {
+        return function (v) {
+            return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+        };
+    }
+    function kernelGaussian(bandwidth) {
+        return function (v) {
+            return (1 / (Math.sqrt(2 * Math.PI) * bandwidth)) * Math.exp(-0.5 * (v / bandwidth) ** 2);
+        };
+    }
+};
+
 window.addEventListener("load", (event) => {
     renderJobs();
+    renderMMPOverview();
 });
