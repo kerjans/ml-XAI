@@ -555,7 +555,7 @@ const renderMMPOverview = function (data) {
 
     const maxDensity = d3.max(groups, g => d3.max(kde(g.values), d => d[1]));
 
-    const AMPLIFICATION_FACTOR = 2.5;
+    const AMPLIFICATION_FACTOR = 1.0;
     const yScale = d3.scaleLinear()
         .domain([0, maxDensity])
         .range([0, y.bandwidth() * AMPLIFICATION_FACTOR]);
