@@ -585,7 +585,30 @@ const renderMMPOverview = function (data) {
                 .attr("cy", y(g.MMP_rule) + y.bandwidth() / 2) // vertically center
                 .attr("r", 3)
                 .attr("fill", "black")
-                .attr("opacity", 0.6);
+                .attr("opacity", 0.6)
+                .on("mouseover", function (event) {
+                    d3.select(this)
+                        .transition()
+                        .duration(150)
+                        .attr("r", 6)
+                        .attr("fill", "red");
+
+                    d3.select("#tooltip")
+                        .style("opacity", 1)
+                        .html(`target_diff: ${value.toFixed(3)}`)
+                        .style("left", `${event.pageX + 10}px`)
+                        .style("top", `${event.pageY - 20}px`);
+                })
+                .on("mouseout", function () {
+                    d3.select(this)
+                        .transition()
+                        .duration(150)
+                        .attr("r", 3)
+                        .attr("fill", "black");
+
+                    d3.select("#tooltip")
+                        .style("opacity", 0);
+                });;
         });
     });
 
