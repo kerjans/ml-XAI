@@ -463,6 +463,17 @@ window.onload = () => {
     coll[0].click();
 };
 
+RDKit = null;
+
+initRDKitModule().then(function (instance) {
+    RDKit = instance;
+    console.log("RDKit loaded.");
+});
+
+const displaySmiles = function (smiles) {
+    const mol = RDKit.get_mol(smiles);
+    return mol.get_svg();
+};
 
 
 const renderMMPOverview = function (data) {
@@ -495,7 +506,12 @@ const renderMMPOverview = function (data) {
     // Group by MMP_rule
     var groups = Array.from(
         d3.group(data, d => d.MMP_rule),
-        ([key, values]) => ({ MMP_rule: key, values: values.map(d => d.target_diff) })
+        ([key, values]) => ({
+            MMP_rule: key,
+            values: values.map(d => d.target_diff),
+            smiles_1: values.map(d => d.smiles_1),
+            smiles_2: values.map(d => d.smiles_2),
+        })
     );
 
 
@@ -579,7 +595,7 @@ const renderMMPOverview = function (data) {
             .text(g.MMP_rule);
 
         // Scatterplot the single datapoints
-        g.values.forEach(value => {
+        g.values.forEach((value, i) => {
             svg.append("circle")
                 .attr("cx", x(value))
                 .attr("cy", y(g.MMP_rule) + y.bandwidth() / 2) // vertically center
@@ -595,9 +611,10 @@ const renderMMPOverview = function (data) {
 
                     d3.select("#tooltip")
                         .style("opacity", 1)
-                        .html(`target_diff: ${value.toFixed(3)}`)
+                        .html(`target_diff: ${value.toFixed(3)} ${displaySmiles(g.smiles_1[i])} => ${displaySmiles(g.smiles_2[i])}`)
                         .style("left", `${event.pageX + 10}px`)
-                        .style("top", `${event.pageY - 20}px`);
+                        .style("top", `${event.pageY - 20}px`)
+                        .selectAll("*").style("width", "150px").style("height", "150px");
                 })
                 .on("mouseout", function () {
                     d3.select(this)

@@ -164,7 +164,7 @@ class MMPOverview(BaseHandler):
             {
                 "mmp_overview_data": json.dumps(
                     [
-                        {"MMP_rule":row["transformation"],"target_diff":row["target_diff"]}
+                        {"MMP_rule":row["transformation"],"target_diff":row["target_diff"],"smiles_1":row["smiles_1"],"smiles_2":row["smiles_2"]}
                         for _,row in df.iterrows()
                      ]),
                 "status": "success",
