@@ -470,7 +470,9 @@ const renderMMPOverview = function (data) {
     const svg = d3.select("#mmp-overview");
     svg.selectAll("*").remove(); // Clear the canvas
 
-    const margin = { top: 20, right: 30, bottom: 30, left: 120 };
+    //const margin = { top: 20, right: 30, bottom: 30, left: 120 };
+    const margin = { top: 40, right: 60, bottom: 60, left: 200 };
+
 
 
     if (!data)
