@@ -156,22 +156,17 @@ class MMPOverview(BaseHandler):
         mmp_fle = working_dir / "MMPs_with_attributions.csv"
         df = pd.read_csv(mmp_fle)
 
-        mmp_contribs = []
+        # df columns:
         # smiles_1,smiles_2,ID_1,ID_2,transformation,constant,constant_atom_count,Atom Attributions_1,Atom Attributions_2,target_1,target_2
         df["target_diff"] = df["target_2"] - df["target_1"]
-        for transf in df["transformation"].unique():
-            g_transf = df[df["transformation"] == transf]
-            target_diff = g_transf.target_diff.mean()
-            mmp_contribs.append(
-                {
-                "MMP_rule": transf,
-                "target_diff": target_diff,
-                }
-            )
 
         resp = json.dumps(
             {
-                "mmp_overview_data": json.dumps(mmp_contribs),
+                "mmp_overview_data": json.dumps(
+                    [
+                        {"MMP_rule":row["transformation"],"target_diff":row["target_diff"]}
+                        for _,row in df.iterrows()
+                     ]),
                 "status": "success",
             }
         )

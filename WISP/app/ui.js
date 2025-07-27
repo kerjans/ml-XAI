@@ -507,9 +507,9 @@ const renderMMPOverview = function (data) {
     const bottom10 = groups.slice(0, 10); // lowest means
 
     // Merge and re-sort however you want (e.g., descending by mean)
-    groups = [...bottom10, ...top10];
-
-
+    const filter_top = false;
+    if (filter_top)
+        groups = [...bottom10, ...top10];
 
     const rowHeight = 20;
     const height = groups.length * rowHeight + margin.top + margin.bottom;
