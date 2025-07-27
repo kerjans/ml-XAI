@@ -531,13 +531,16 @@ const renderMMPOverview = function (data) {
         .range([margin.top, height - margin.bottom])
         .paddingInner(0.3);
 
-    const kde = kernelDensityEstimator(kernelEpanechnikov(0.02), x.ticks(100));
+    // This one here gave poor results:
+    // const kde = kernelDensityEstimator(kernelEpanechnikov(0.02), x.ticks(100));
+    const kde = kernelDensityEstimator(kernelGaussian(0.25), x.ticks(100));
 
     const maxDensity = d3.max(groups, g => d3.max(kde(g.values), d => d[1]));
 
+    const AMPLIFICATION_FACTOR = 2.5;
     const yScale = d3.scaleLinear()
         .domain([0, maxDensity])
-        .range([0, y.bandwidth()]);
+        .range([0, y.bandwidth() * AMPLIFICATION_FACTOR]);
 
     // X Axis
     svg.append("g")
@@ -594,6 +597,11 @@ const renderMMPOverview = function (data) {
     function kernelEpanechnikov(k) {
         return function (v) {
             return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+        };
+    }
+    function kernelGaussian(bandwidth) {
+        return function (v) {
+            return (1 / (Math.sqrt(2 * Math.PI) * bandwidth)) * Math.exp(-0.5 * (v / bandwidth) ** 2);
         };
     }
 };
