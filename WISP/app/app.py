@@ -149,11 +149,7 @@ class MMPOverview(BaseHandler):
     @log_function_call
     def post(self):
         req = json.loads(self.request.body)
-
         job_id = req["job_id"]
-        start = req["start"]
-        end = req["end"]
-
         here = Path(__file__).parent
         working_dir = here / "working_dir" / f"{job_id}"
 
@@ -165,19 +161,17 @@ class MMPOverview(BaseHandler):
         df["target_diff"] = df["target_2"] - df["target_1"]
         for transf in df["transformation"].unique():
             g_transf = df[df["transformation"] == transf]
-            contrib = g_transf.target_diff.mean()
+            target_diff = g_transf.target_diff.mean()
             mmp_contribs.append(
                 {
-                "transformation": transf,
-                "contribution": contrib,
+                "MMP_rule": transf,
+                "target_diff": target_diff,
                 }
             )
 
-        
-
         resp = json.dumps(
             {
-                "mmp_contribs": json.dumps(mmp_contribs),
+                "mmp_overview_data": json.dumps(mmp_contribs),
                 "status": "success",
             }
         )
@@ -442,6 +436,7 @@ async def main():
             (r"/GuessColumnsHandler", GuessColumnsHandler),
             (r"/HeatMaps", HeatMaps),
             (r"/WispOverviewPage", WispOverviewPage),
+            (r"/MMPOverview", MMPOverview),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
         ],
         autoreload=True,

@@ -140,6 +140,7 @@ const submitJob = function () {
     });
 };
 
+MMP_OVERVIEW_DATA = [];
 const retrieveResults = function (job_id) {
 
     fetch("WispOverviewPage", {
@@ -176,9 +177,7 @@ const retrieveResults = function (job_id) {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json'
-            }
-
-            ,
+            },
             body: JSON.stringify({
                 "job_id": job_id
             })
@@ -201,6 +200,34 @@ const retrieveResults = function (job_id) {
             }
         }
         )
+    ).then(
+        fetch("MMPOverview", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                "job_id": job_id
+            })
+        }).then(res => res.json()).then(res => {
+            console.log("Request complete! response:", res);
+            const status = res["status"];
+
+            if (status == "success") {
+                //IMAGES = res["images"];
+                MMP_OVERVIEW_DATA = res["mmp_overview_data"];
+                if (typeof MMP_OVERVIEW_DATA === 'string' || MMP_OVERVIEW_DATA instanceof String)
+                    MMP_OVERVIEW_DATA = JSON.parse(MMP_OVERVIEW_DATA);
+
+                //refreshFirstPage();
+                //refreshSecondPage();
+                renderMMPOverview(MMP_OVERVIEW_DATA);
+            }
+
+            else {
+                alert("failure could not parse input!");
+            }
+        })
     );
 };
 
@@ -441,6 +468,7 @@ window.onload = () => {
 const renderMMPOverview = function (data) {
 
     const svg = d3.select("#mmp-overview");
+    svg.selectAll("*").remove(); // Clear the canvas
     const width = +svg.attr("width");
     const height = +svg.attr("height");
     const margin = { top: 20, right: 30, bottom: 30, left: 120 };
