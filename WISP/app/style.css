@@ -306,7 +306,7 @@ ul.gallery>li img:hover {
 
 
 .area {
-    fill: steelblue;
+    /*fill: steelblue;*/
     opacity: 0.6;
 }
 
@@ -326,4 +326,6 @@ ul.gallery>li img:hover {
     /* visible height */
     overflow-y: auto;
     border: 1px solid #ccc;
+    background-color: white;
+
 }

@@ -554,7 +554,7 @@ const renderMMPOverview = function (data) {
         .text("target_diff");
 
     // Draw the curves
-    groups.forEach(g => {
+    groups.forEach((g, i) => {
         const density = kde(g.values);
 
         const area = d3.area()
@@ -566,6 +566,7 @@ const renderMMPOverview = function (data) {
         svg.append("path")
             .datum(density)
             .attr("class", "area")
+            .attr("fill", i % 2 === 0 ? "#2452baff" : "#a2bff4ff") // alternate shades
             .attr("d", area);
 
         svg.append("text")
