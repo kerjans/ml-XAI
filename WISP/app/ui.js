@@ -469,8 +469,7 @@ const renderMMPOverview = function (data) {
 
     const svg = d3.select("#mmp-overview");
     svg.selectAll("*").remove(); // Clear the canvas
-    const width = +svg.attr("width");
-    const height = +svg.attr("height");
+
     const margin = { top: 20, right: 30, bottom: 30, left: 120 };
 
 
@@ -492,13 +491,34 @@ const renderMMPOverview = function (data) {
         ];
 
     // Group by MMP_rule
-    const groups = Array.from(
+    var groups = Array.from(
         d3.group(data, d => d.MMP_rule),
         ([key, values]) => ({ MMP_rule: key, values: values.map(d => d.target_diff) })
     );
 
+
     // Sort alphabetically
-    groups.sort((a, b) => d3.ascending(a.MMP_rule, b.MMP_rule));
+    // groups.sort((a, b) => d3.ascending(a.MMP_rule, b.MMP_rule));
+    // Sort by value
+    groups.sort((a, b) => d3.mean(a.values) - d3.mean(b.values));
+
+    // Keep only the top/bottom 10 elements
+    const top10 = groups.slice(-10); // highest means
+    const bottom10 = groups.slice(0, 10); // lowest means
+
+    // Merge and re-sort however you want (e.g., descending by mean)
+    groups = [...bottom10, ...top10];
+
+
+
+    const rowHeight = 20;
+    const height = groups.length * rowHeight + margin.top + margin.bottom;
+
+    // Update the SVG height
+    svg.attr("height", height);
+
+    const width = +svg.attr("width");
+    //const height = +svg.attr("height");
 
     const allDiffs = data.map(d => d.target_diff);
 
@@ -551,7 +571,18 @@ const renderMMPOverview = function (data) {
             .attr("text-anchor", "end")
             .attr("class", "group-label")
             .text(g.MMP_rule);
+
+        // Scatterplot the single datapoints
+        g.values.forEach(value => {
+            svg.append("circle")
+                .attr("cx", x(value))
+                .attr("cy", y(g.MMP_rule) + y.bandwidth() / 2) // vertically center
+                .attr("r", 3)
+                .attr("fill", "black")
+                .attr("opacity", 0.6);
+        });
     });
+
 
     // KDE functions
     function kernelDensityEstimator(kernel, X) {
