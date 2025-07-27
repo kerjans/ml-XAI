@@ -414,7 +414,7 @@ window.onload = () => {
     coll = document.getElementsByClassName("collapsiblex");
     i = 0;
 
-    const contents = { "Jobs": "job-id-div", "Overview": "result-div", "Evaluation": "result-div-2" }
+    const contents = { "Jobs": "job-id-div", "Evaluation": "result-div", "Atom Contributions": "result-div-2", "MMP Overview": "result-div-3" }
     for (i = 0; i < coll.length; i++) {
         const elt = coll[i];
         const clicked_on = elt.innerText;
@@ -436,6 +436,110 @@ window.onload = () => {
     coll[0].click();
 };
 
+
+
+const renderMMPOverview = function (data) {
+
+    const svg = d3.select("#mmp-overview");
+    const width = +svg.attr("width");
+    const height = +svg.attr("height");
+    const margin = { top: 20, right: 30, bottom: 30, left: 120 };
+
+
+    if (!data)
+        // Toy data: array of objects with target_diff and MMP_rule
+        data = [
+            { target_diff: 0.2, MMP_rule: 'Rule A' },
+            { target_diff: 0.4, MMP_rule: 'Rule A' },
+            { target_diff: 0.35, MMP_rule: 'Rule A' },
+            { target_diff: 0.5, MMP_rule: 'Rule A' },
+            { target_diff: 0.1, MMP_rule: 'Rule B' },
+            { target_diff: 0.12, MMP_rule: 'Rule B' },
+            { target_diff: 0.15, MMP_rule: 'Rule B' },
+            { target_diff: 0.18, MMP_rule: 'Rule B' },
+            { target_diff: 0.3, MMP_rule: 'Rule C' },
+            { target_diff: 0.28, MMP_rule: 'Rule C' },
+            { target_diff: 0.32, MMP_rule: 'Rule C' },
+            { target_diff: 0.34, MMP_rule: 'Rule C' }
+        ];
+
+    // Group by MMP_rule
+    const groups = Array.from(
+        d3.group(data, d => d.MMP_rule),
+        ([key, values]) => ({ MMP_rule: key, values: values.map(d => d.target_diff) })
+    );
+
+    // Sort alphabetically
+    groups.sort((a, b) => d3.ascending(a.MMP_rule, b.MMP_rule));
+
+    const allDiffs = data.map(d => d.target_diff);
+
+    const x = d3.scaleLinear()
+        .domain(d3.extent(allDiffs))
+        .range([margin.left, width - margin.right]);
+
+    const y = d3.scaleBand()
+        .domain(groups.map(g => g.MMP_rule))
+        .range([margin.top, height - margin.bottom])
+        .paddingInner(0.3);
+
+    const kde = kernelDensityEstimator(kernelEpanechnikov(0.02), x.ticks(100));
+
+    const maxDensity = d3.max(groups, g => d3.max(kde(g.values), d => d[1]));
+
+    const yScale = d3.scaleLinear()
+        .domain([0, maxDensity])
+        .range([0, y.bandwidth()]);
+
+    // X Axis
+    svg.append("g")
+        .attr("transform", `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).ticks(6))
+        .append("text")
+        .attr("x", width / 2)
+        .attr("y", 25)
+        .attr("fill", "black")
+        .attr("text-anchor", "middle")
+        .text("target_diff");
+
+    // Draw the curves
+    groups.forEach(g => {
+        const density = kde(g.values);
+
+        const area = d3.area()
+            .x(d => x(d[0]))
+            .y0(y(g.MMP_rule) + y.bandwidth() / 2)
+            .y1(d => y(g.MMP_rule) + y.bandwidth() / 2 - yScale(d[1]))
+            .curve(d3.curveBasis);
+
+        svg.append("path")
+            .datum(density)
+            .attr("class", "area")
+            .attr("d", area);
+
+        svg.append("text")
+            .attr("x", margin.left - 10)
+            .attr("y", y(g.MMP_rule) + y.bandwidth() / 2)
+            .attr("text-anchor", "end")
+            .attr("class", "group-label")
+            .text(g.MMP_rule);
+    });
+
+    // KDE functions
+    function kernelDensityEstimator(kernel, X) {
+        return function (V) {
+            return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
+        };
+    }
+
+    function kernelEpanechnikov(k) {
+        return function (v) {
+            return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+        };
+    }
+};
+
 window.addEventListener("load", (event) => {
     renderJobs();
+    renderMMPOverview();
 });

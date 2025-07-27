@@ -145,6 +145,44 @@ def mol_to_image(mol, width=300, height=300) -> "Image":
     return deepcopy(img)
 
 
+class MMPOverview(BaseHandler):
+    @log_function_call
+    def post(self):
+        req = json.loads(self.request.body)
+
+        job_id = req["job_id"]
+        start = req["start"]
+        end = req["end"]
+
+        here = Path(__file__).parent
+        working_dir = here / "working_dir" / f"{job_id}"
+
+        mmp_fle = working_dir / "MMPs_with_attributions.csv"
+        df = pd.read_csv(mmp_fle)
+
+        mmp_contribs = []
+        # smiles_1,smiles_2,ID_1,ID_2,transformation,constant,constant_atom_count,Atom Attributions_1,Atom Attributions_2,target_1,target_2
+        df["target_diff"] = df["target_2"] - df["target_1"]
+        for transf in df["transformation"].unique():
+            g_transf = df[df["transformation"] == transf]
+            contrib = g_transf.target_diff.mean()
+            mmp_contribs.append(
+                {
+                "transformation": transf,
+                "contribution": contrib,
+                }
+            )
+
+        
+
+        resp = json.dumps(
+            {
+                "mmp_contribs": json.dumps(mmp_contribs),
+                "status": "success",
+            }
+        )
+        self.write(resp)
+
 class MoleculePage(BaseHandler):
     @log_function_call
     def post(self):

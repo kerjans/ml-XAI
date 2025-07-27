@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Molecular XAI</title>
     <link rel="stylesheet" type="text/css" href="/static/style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="/static/ui.js"></script>
 </head>
 
@@ -56,8 +57,9 @@
 
                 <div style="position: absolute; top: 0%;">
                     <button class="collapsiblex">Jobs</button>
-                    <button class="collapsiblex">Overview</button>
                     <button class="collapsiblex">Evaluation</button>
+                    <button class="collapsiblex">Atom Contributions</button>
+                    <button class="collapsiblex">MMP Overview</button>
                 </div>
 
                 <div style="position: absolute;">
@@ -81,6 +83,10 @@
 
                     <div id="result-div-2">
 
+                    </div>
+
+                    <div id="result-div-3">
+                        <svg width="800" height="600" id="mmp-overview"></svg>
                     </div>
                 </div>
             </div>
