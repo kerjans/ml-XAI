@@ -2,7 +2,7 @@ from rdkit.Chem import rdmolops
 from rdkit import Chem
 import numpy as np
 import pandas as pd
-from WISP.ml_helper import *
+from wisp.ml_helper import *
 
 def find_all_paths(mol, start_idx, end_idx, max_depth=10):
     paths = []

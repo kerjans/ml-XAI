@@ -15,7 +15,7 @@ from rdkit.Chem import DataStructs
 from sklearn.svm import SVR
 import urllib.request
 from WISP import SOL, MODEL, DATA_DIR
-from WISP.main import get_attributions_df
+from wisp.main import get_attributions_df
 
 
 def read_data():

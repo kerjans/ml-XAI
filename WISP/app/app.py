@@ -301,7 +301,7 @@ class GuessColumnsHandler(BaseHandler):
         self.write(resp)
 
 
-from WISP.WISP import WISP # :o
+from wisp.WISP import WISP # :o
 def run_wisp(args,metafle):
     print("START","run_wisp")
     #time.sleep(20)

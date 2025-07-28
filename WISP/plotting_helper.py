@@ -12,7 +12,7 @@ import ast
 import matplotlib.colors as mcolors
 import ast
 from matplotlib.colorbar import ColorbarBase
-from WISP.get_indices import *
+from wisp.get_indices import *
 
 
 DISPLAY_PLOTS = True

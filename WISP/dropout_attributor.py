@@ -3,7 +3,7 @@ import random
 from rdkit import Chem
 import numpy as np
 import pandas as pd
-from WISP.ml_helper import *
+from wisp.ml_helper import *
 
 def mutations_dropout(mol,dropout=0.25,seed=None,max_iterations=50,):
     """

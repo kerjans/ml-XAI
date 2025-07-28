@@ -11,58 +11,42 @@ warnings.filterwarnings("ignore", module="sklearn")
 
 
 from standardizer.mol_standardizer import *
-from WISP.ml_helper import *
-from WISP.SHAP_MORGAN_attributor import *
-from WISP.plotting_helper import *
-from WISP.atom_attributor import *
-from WISP.dropout_attributor import *
-from WISP.path_attributor import *
-from WISP.RDKit_attributor import *
-from WISP.create_MMPs import *
-from WISP.get_indices import *
-
-
-def analyze_locality(data_MMPs, Attribution_Colums, working_dir):
-    data_MMPs['unmatched_atom_index_1_with_neighbors'] = data_MMPs.apply(lambda row: get_neighbors(row['smiles_1'], row['unmatched_atom_index_1']), axis=1)
-    data_MMPs['unmatched_atom_index_2_with_neighbors'] = data_MMPs.apply(lambda row: get_neighbors(row['smiles_2'], row['unmatched_atom_index_2']), axis=1)
-
-    methods = {
-    'Atom': ('Atom Attributions_1_fix', 'Atom Attributions_2_fix', '#10384f', 'ATOM')}
-
-    if 'SHAP Attributions' in Attribution_Colums:
-        methods['SHAP'] = ('SHAP Attributions_1_fix', 'SHAP Attributions_2_fix', '#9C0D38', 'SHAP')
-    if 'RDKit Attributions' in Attribution_Colums:
-        methods['RDKit'] = ('RDKit Attributions_1_fix', 'RDKit Attributions_2_fix', '#758ECD', 'RDKIT')
-
-    for method, (attr1, attr2, color, label) in methods.items():
-        key1 = f'summ_unmatched_{method}_contributions_1_sphere'
-        key2 = f'summ_unmatched_{method}_contributions_2_sphere'
-        delta_key = f'delta_sum_fragment_{method}_contributions_sphere'
-
-        data_MMPs[key1] = get_unmatched_attributions(data_MMPs, attr1, 'unmatched_atom_index_1_with_neighbors')
-        data_MMPs[key2] = get_unmatched_attributions(data_MMPs, attr2, 'unmatched_atom_index_2_with_neighbors')
-        data_MMPs[delta_key] = data_MMPs[key1] - data_MMPs[key2]
-
-        r2 = np.corrcoef(data_MMPs['delta_prediction'], data_MMPs[delta_key])[0,1]**2
-
-        plot_2D(
-            [f'$r^2$({method}) = {r2:.2f}'], 'upper left',
-            data_MMPs['delta_prediction'],
-            data_MMPs[delta_key],
-            '$\Delta$Predictions MMP',
-            '$\Delta$Attributions MMP (Fragment+Neig)',
-            working_dir + label + 'attributor_NEIG.png',
-            color,
-            include_line=True,
-            line_style='None'
-        )
-    return data_MMPs
+from wisp.ml_helper import *
+from wisp.SHAP_MORGAN_attributor import *
+from wisp.plotting_helper import *
+from wisp.atom_attributor import *
+from wisp.dropout_attributor import *
+from wisp.path_attributor import *
+from wisp.RDKit_attributor import *
+from wisp.create_MMPs import *
+from wisp.get_indices import *
 
 def detect_binary_classification(data, Target_Column_Name):
+    """
+    Determine if the specified target/property of interest column defines a binary classification task or regression.
+
+    Parameters:
+        data (pd.DataFrame): The input DataFrame.
+        Target_Column_Name (str): Name of the target column to inspect.
+
+    Returns:
+        str: 'classification' if the column has exactly two unique values (NaNs counted),
+             otherwise 'regression'.
+    """
     unique_values = data[Target_Column_Name].nunique(dropna=False)
     return 'classification' if unique_values == 2 else 'regression'
 
 def MMP_accuracy(data, attr_method):
+    """
+    Compute and print the binary accuracy of an attribution method versus prediction deltas.
+
+    Parameters:
+        data (pd.DataFrame): Must contain 'delta_prediction' and the column named by attr_method.
+        attr_method (str): Column name of attributions to threshold at zero.
+
+    Returns:
+        None: Prints "<attr_method> Accuracy: XX.XX".
+    """
     y_true = (data['delta_prediction'] > 0).astype(int)
     y_pred = (data[attr_method] > 0).astype(int)
 
@@ -70,8 +54,18 @@ def MMP_accuracy(data, attr_method):
     print(attr_method + f" Accuracy: {accuracy:.2f}")
 
 def normalize_atom_attributions(data, input_col):
+    """
+    Normalize per-atom attribution arrays by the global standard deviation of the respective dataset.
 
-    output_col= input_col + '_std'
+    Parameters:
+        data (pd.DataFrame): Contains column `input_col` of array-like attributions.
+        input_col (str): Name of the column to normalize.
+
+    Returns:
+        pd.DataFrame: The original DataFrame with a new column
+                      `input_col + '_std'` holding the normalized arrays.
+    """
+    output_col = input_col + '_std'
 
     attr = np.concatenate(data[input_col].values)
     std = np.nanstd(attr)
@@ -82,6 +76,15 @@ def normalize_atom_attributions(data, input_col):
 
 @contextlib.contextmanager
 def suppress_output():
+    """
+    Context manager that temporarily redirects stdout and stderr to os.devnull,
+    silencing any print or logging output within its block.
+
+    Usage:
+        with suppress_output():
+            # code whose stdout/stderr you want to suppress
+            ...
+    """
     with open(os.devnull, 'w') as devnull:
         old_stdout = sys.stdout
         old_stderr = sys.stderr
@@ -153,7 +156,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             #test/train split
             test, target_test, train = split_data(data, Target_Column_Name, working_dir)
 
-            #find and train standard model ---------------------> could be extended
+            #find and train standard model
             model, feature_function, featureCOLUMS  = get_and_train_class_model(train, test, Target_Column_Name, target_test, working_dir)
 
 
@@ -161,8 +164,8 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
     model = pickle.load(open(working_dir + "model.pkl", 'rb'))
 
     #Attribute Atoms
-    Attribution_Colums = ['Atom Attributions_std']#, 'Path Attributions', 'Dropout Attributions'
-    color_coding =['#10384f'] #,'#89d329','#00bcff'
+    Attribution_Colums = ['Atom Attributions_std']
+    color_coding =['#10384f']
     
     #model/descriptor agnostic
     data['Atom Attributions'] = data['smiles_std'].apply(lambda s: attribute_atoms(s, model, feature_function))
@@ -171,8 +174,8 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
     print("Atom Attribution done")
     
     #SHAP explainer
-    if "Morgan" in inspect.getsource(feature_function):#to only use on Morgan
-        if task_type == 'regression': #need to get classification to work 
+    if "Morgan" in inspect.getsource(feature_function):
+        if task_type == 'regression':
             data['Morgan_Fingerprint 2048Bit 2rad'] = data['smiles_std'].apply(feature_function)
             
             explainer = pick_shap_explainer(model)
@@ -233,9 +236,6 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             for attr_method, color in zip(Attribution_Colums, color_coding): 
                 data_MMPs = plot_MMP_correlations(data_MMPs, attr_method, color, working_dir, Target_Column_Name)
                 data_MMPs = plot_const_histogram(data_MMPs, attr_method, color, working_dir)
-            
-            #Analyse Locality
-            #data_MMPs = analyze_locality(data_MMPs, Attribution_Colums, working_dir)
 
     #test/train dependency and plots
     if model_available is None:
@@ -251,12 +251,6 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             print('For the test set:')
             test_set = plot_MMP_correlations(test_set, attr_method, color, working_dir, Target_Column_Name, header='Test Set')
             test_set = plot_const_histogram(test_set, attr_method, color, working_dir, header='Test Set')
-        
-        #Analyse Locality
-        #print('For the training set:')
-        #train_set = analyze_locality(train_set, Attribution_Colums, working_dir)
-        #print('For the test set:')
-        #test_set = analyze_locality(test_set, Attribution_Colums, working_dir)
         
         for attr_method, color in zip(Attribution_Colums, color_coding): 
         
@@ -284,7 +278,6 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             for col in columns:
                 MMP_accuracy(data_MMPs, col)
         
-    
     #save data
     data_MMPs.to_csv(working_dir + "Complete_Data.csv", index=False)
 

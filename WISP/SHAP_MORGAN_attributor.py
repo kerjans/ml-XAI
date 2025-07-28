@@ -1,4 +1,4 @@
-from WISP.ml_helper import *
+from wisp.ml_helper import *
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
