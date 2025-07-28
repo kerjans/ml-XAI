@@ -512,7 +512,7 @@ async def main():
             application,
         )
 
-    http_server.listen(8914)
+    http_server.listen(80)
     await asyncio.Event().wait()
 
 
