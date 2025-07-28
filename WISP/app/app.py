@@ -189,6 +189,8 @@ def mol_to_image(mol, width=300, height=300) -> "Image":
 
 
 class MMPOverview(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     def post(self):
         req = json.loads(self.request.body)
@@ -216,6 +218,8 @@ class MMPOverview(BaseHandler):
         self.write(resp)
 
 class MoleculePage(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     def post(self):
         req = json.loads(self.request.body)
@@ -250,6 +254,8 @@ class MoleculePage(BaseHandler):
         self.write(resp)
 
 class HeatMaps(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     def post(self):
         req = json.loads(self.request.body)
@@ -285,6 +291,8 @@ class HeatMaps(BaseHandler):
         self.write(resp)
 
 class WispOverviewPage(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     def post(self):
         req = json.loads(self.request.body)
@@ -314,6 +322,8 @@ class WispOverviewPage(BaseHandler):
 
 
 class GuessColumnsHandler(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     def post(self):
 
@@ -357,6 +367,8 @@ def run_wisp(args,metafle):
 
 
 class JobStatusHandler(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     def post(self):
         req = json.loads(self.request.body)
@@ -387,6 +399,8 @@ def generate_job_id():
          ])
 
 class JobSubmissionHandler(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     async def post(self):
 
