@@ -15,7 +15,7 @@ from matplotlib.colorbar import ColorbarBase
 from WISP.get_indices import *
 
 
-DISPLAY_PLOTS = False
+DISPLAY_PLOTS = True
 
 def plot_2D(LEGEND, placeLegend, Xaxes, Yaxes, Xlable, Ylable, SAVEDIR, color, header=None, include_line=True, line_style='-'):
     plt.rcParams['font.family'] = 'arial'
@@ -92,7 +92,7 @@ def plot_histogram_one_dataset(data, colum_of_interest, label, color, attr_metho
     color_with_alpha = base_color[:3] + (0.5,)
 
     # Plotting
-    plt.figure(figsize=(10, 6))
+    #plt.figure(figsize=(10, 6))
     plt.hist(data[colum_of_interest], bins=30, color=color_with_alpha, edgecolor=color, label=f"{attr_method} \n(Standard Deviation: {std_dev:.2f})")  
     
     if header is not None:
