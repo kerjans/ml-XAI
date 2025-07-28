@@ -111,6 +111,7 @@ class LoginHandler(tornado.web.RequestHandler):
                    'Captcha: <input type="text" name="name">'
                    '<input type="submit" value="Sign in">'
                    '</form></body></html>')
+        img_fle.unlink()
 
     def post(self):
         trial = self.get_argument("name")
