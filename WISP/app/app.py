@@ -7,6 +7,7 @@ import json
 import io
 import base64
 import random
+import secrets
 import time
 import tornado
 import tornado.ioloop
@@ -78,7 +79,49 @@ def log_function_call(func):
 
 # The BaseHandler is the blueprint for a Request Handler
 class BaseHandler(tornado.web.RequestHandler):
-    pass
+    def get_current_user(self):
+        return self.get_signed_cookie("user")
+
+from captcha.image import ImageCaptcha
+import random
+import string
+import time
+class LoginHandler(tornado.web.RequestHandler):
+
+    IMAGE_CAPTCHAS = []
+
+    sleep_time = 1
+
+    def get(self):
+        time.sleep(self.sleep_time * len(self.IMAGE_CAPTCHAS))
+        cap = ImageCaptcha()
+        characters = string.ascii_uppercase + string.digits
+        cap_text = ''.join(secrets.choice(characters) for _ in range(6))
+        self.IMAGE_CAPTCHAS.append(cap_text)
+        self.IMAGE_CAPTCHAS = self.IMAGE_CAPTCHAS[-10:]
+        img_fle = Path(f"captcha_{uuid.uuid4()}.png")
+        cap.write(cap_text,str(img_fle))
+
+        hex_data = img_fle.read_bytes()
+        img64 = base64.b64encode(hex_data).decode("utf-8")
+        src = "data:image/png;base64," + img64
+        self.write('<html><body><form action="/login" method="post">'
+                    "<p>Please complete the captcha (may take several seconds)</p>"
+                    f'<img src="{src}"></img>'
+                   'Captcha: <input type="text" name="name">'
+                   '<input type="submit" value="Sign in">'
+                   '</form></body></html>')
+        img_fle.unlink()
+
+    def post(self):
+        trial = self.get_argument("name")
+        if trial in self.IMAGE_CAPTCHAS:
+            print("LOGIN SUCCESS")
+            self.set_signed_cookie("user", str(uuid.uuid4()))
+            self.redirect("/")
+        else:
+            print("LOGIN FAILURE")
+            self.redirect("/login")
 
 
 # The MainHandler displays the website
@@ -89,6 +132,7 @@ class MainHandler(BaseHandler):
         with open(SITE) as reader:
             return reader.read()
 
+    @tornado.web.authenticated
     @log_function_call
     def get(self):
         self.write(self.read())
@@ -146,6 +190,8 @@ def mol_to_image(mol, width=300, height=300) -> "Image":
 
 
 class MMPOverview(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     def post(self):
         req = json.loads(self.request.body)
@@ -173,6 +219,8 @@ class MMPOverview(BaseHandler):
         self.write(resp)
 
 class MoleculePage(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     def post(self):
         req = json.loads(self.request.body)
@@ -207,6 +255,8 @@ class MoleculePage(BaseHandler):
         self.write(resp)
 
 class HeatMaps(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     def post(self):
         req = json.loads(self.request.body)
@@ -242,6 +292,8 @@ class HeatMaps(BaseHandler):
         self.write(resp)
 
 class WispOverviewPage(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     def post(self):
         req = json.loads(self.request.body)
@@ -271,6 +323,8 @@ class WispOverviewPage(BaseHandler):
 
 
 class GuessColumnsHandler(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     def post(self):
 
@@ -314,6 +368,8 @@ def run_wisp(args,metafle):
 
 
 class JobStatusHandler(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     def post(self):
         req = json.loads(self.request.body)
@@ -344,6 +400,8 @@ def generate_job_id():
          ])
 
 class JobSubmissionHandler(BaseHandler):
+
+    @tornado.web.authenticated
     @log_function_call
     async def post(self):
 
@@ -433,9 +491,11 @@ async def main():
             (r"/WispOverviewPage", WispOverviewPage),
             (r"/MMPOverview", MMPOverview),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
+            (r"/login", LoginHandler),
         ],
         autoreload=True,
         cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
+        login_url="/login",
     )
 
     try:
