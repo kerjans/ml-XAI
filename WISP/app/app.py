@@ -145,7 +145,33 @@ def mol_to_image(mol, width=300, height=300) -> "Image":
     return deepcopy(img)
 
 
-#from WISP.WISP import WISP # :D
+class MMPOverview(BaseHandler):
+    @log_function_call
+    def post(self):
+        req = json.loads(self.request.body)
+        job_id = req["job_id"]
+        here = Path(__file__).parent
+        working_dir = here / "working_dir" / f"{job_id}"
+
+        mmp_fle = working_dir / "MMPs_with_attributions.csv"
+        df = pd.read_csv(mmp_fle)
+
+        # df columns:
+        # smiles_1,smiles_2,ID_1,ID_2,transformation,constant,constant_atom_count,Atom Attributions_1,Atom Attributions_2,target_1,target_2
+        df["target_diff"] = df["target_2"] - df["target_1"]
+
+        resp = json.dumps(
+            {
+                "mmp_overview_data": json.dumps(
+                    [
+                        {"MMP_rule":row["transformation"],"target_diff":row["target_diff"],"smiles_1":row["smiles_1"],"smiles_2":row["smiles_2"]}
+                        for _,row in df.iterrows()
+                     ]),
+                "status": "success",
+            }
+        )
+        self.write(resp)
+
 class MoleculePage(BaseHandler):
     @log_function_call
     def post(self):
@@ -180,6 +206,41 @@ class MoleculePage(BaseHandler):
         )
         self.write(resp)
 
+class HeatMaps(BaseHandler):
+    @log_function_call
+    def post(self):
+        req = json.loads(self.request.body)
+        print("req:",req)
+
+        job_id = req["job_id"]
+
+        here = Path(__file__).parent
+        working_dir = here / "working_dir" / f"{job_id}"
+        heat_maps_dir = working_dir / "HeatMaps"
+
+        meta_fle = working_dir / "metadata.json"
+        meta_df = json.loads(meta_fle.read_text())
+
+        heat_maps = []
+        if heat_maps_dir.exists():
+            for png_fle in heat_maps_dir.glob("*.png"):
+                hex_data = png_fle.read_bytes()
+                img64 = base64.b64encode(hex_data).decode("utf-8")
+
+                if "legend" in png_fle.name.lower():
+                    legend = img64
+                else:
+                    heat_maps.append(img64)
+
+        resp = json.dumps(
+            {
+                "legend": legend,
+                "heatmaps": heat_maps,
+                "status": "success",
+            }
+        )
+        self.write(resp)
+
 class WispOverviewPage(BaseHandler):
     @log_function_call
     def post(self):
@@ -188,8 +249,11 @@ class WispOverviewPage(BaseHandler):
 
         images = {}
         
-        result_dir = Path(__file__).parent.parent.parent / "example_images"
-        for img_fle in result_dir.glob("*.png"):
+        job_id = req["job_id"]
+
+        here = Path(__file__).parent
+        working_dir = here / "working_dir" / f"{job_id}"
+        for img_fle in working_dir.glob("*.png"):
             img = Image.open(img_fle)
             output = io.BytesIO()
             img.save(output, format="png")
@@ -238,26 +302,58 @@ class GuessColumnsHandler(BaseHandler):
 
 
 from WISP.WISP import WISP # :o
-def run_wisp(args):
+def run_wisp(args,metafle):
     print("START","run_wisp")
     #time.sleep(20)
     WISP(**args)
     print("END","run_wisp")
+    metadat = json.loads(metafle.read_text())
+    metadat["status"] = "done"
+    metafle.write_text(json.dumps(metadat))
     return
 
+
+class JobStatusHandler(BaseHandler):
+    @log_function_call
+    def post(self):
+        req = json.loads(self.request.body)
+        print("req:",req)
+
+        job_id = req["job_id"]
+
+        here = Path(__file__).parent
+        working_dir = here / "working_dir" / f"{job_id}"
+        metafle = working_dir / "metadata.json"
+        metadat = json.loads(metafle.read_text())
+
+        resp = json.dumps(
+            {
+                "job_status": metadat["status"],
+            }
+        )
+        self.write(resp)
+
+
+from datetime import datetime
+import uuid
+def generate_job_id():
+    return "__".join(
+        [
+            datetime.today().strftime('%Y_%m_%d_%H_%M_%S'),
+            uuid.uuid4().hex,
+         ])
 
 class JobSubmissionHandler(BaseHandler):
     @log_function_call
     async def post(self):
 
-        # guaranteeed random looking choice 
-        job_id = random.choice(["42","123","69","666",])
+        job_id = generate_job_id()
 
         try:
             req = json.loads(self.request.body)
             print("req:",req)
             csv = StringIO(req["csv"][0])
-            df = resilient_read_csv(csv).sample(256)
+            df = resilient_read_csv(csv)
 
             if df is not None:
                 smiles = resilient_read_smiles(df)
@@ -285,25 +381,28 @@ class JobSubmissionHandler(BaseHandler):
                             "smiles": smiles,
                             "target": target,
                             "job_id": job_id,
+                            "status": "running",
                         }
                 metafle.write_text(json.dumps(metadat))
 
                 input_fle = working_dir / f"input_{job_id}.csv"
                 df_new.to_csv(input_fle)
 
-                loop = asyncio.get_running_loop()
-                _ = loop.run_in_executor(
-                    PROCESS_POOL, run_wisp, 
-                    {
-                        # fix for internal wisp processing problems
-                        "working_dir":str(working_dir)+str(os.path.sep), 
-                        "input_dir":str(input_fle),
-                        "ID_Column_Name":id_col,
-                        "Smiles_Column_Name":smiles_col,
-                        "Target_Column_Name":target_col,
-                        "use_GNN":False,
-                        },
-                )
+                if True:
+                    loop = asyncio.get_running_loop()
+                    _ = loop.run_in_executor(
+                        PROCESS_POOL, run_wisp, 
+                        {
+                            # fix for internal wisp processing problems
+                            "working_dir":str(working_dir)+str(os.path.sep), 
+                            "input_dir":str(input_fle),
+                            "ID_Column_Name":id_col,
+                            "Smiles_Column_Name":smiles_col,
+                            "Target_Column_Name":target_col,
+                            "use_GNN":False,
+                            },  metafle
+                    )
+
 
             resp = json.dumps(
                 {
@@ -328,7 +427,11 @@ async def main():
         [
             (r"/", MainHandler),
             (r"/JobSubmission", JobSubmissionHandler),
+            (r"/JobStatus", JobStatusHandler),
             (r"/GuessColumnsHandler", GuessColumnsHandler),
+            (r"/HeatMaps", HeatMaps),
+            (r"/WispOverviewPage", WispOverviewPage),
+            (r"/MMPOverview", MMPOverview),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
         ],
         autoreload=True,

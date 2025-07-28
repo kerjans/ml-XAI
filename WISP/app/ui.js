@@ -51,6 +51,64 @@ const drop = function (evt) {
 
 IMAGES = [];
 
+const renderJobs = function () {
+    const elt = document.getElementById("job-list");
+    elt.innerHTML = "";
+    const jobs = JSON.parse(localStorage.getItem("jobs"));
+    jobs.forEach(
+        function (job) {
+            const b = document.createElement("button");
+            b.classList.add("primary-button");
+            b.classList.add("job-buttons");
+            b.innerText = job;
+            b.onclick = function (args) {
+                Array.from(document.getElementsByClassName("job-buttons")).forEach(elt => elt.classList.remove("active-job-button"));
+                b.classList.add("active-job-button");
+                retrieveResults(job);
+            };
+            const bd = document.createElement("div");
+            bd.appendChild(b);
+
+            fetch("JobStatus", {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    "job_id": job
+                })
+
+            }).then(res => res.json()).then(res => {
+                console.log("Request complete! response:", res);
+                const status = res["job_status"];
+                const status_label = document.createElement("p");
+                status_label.style.display = "inline";
+                status_label.style.marginLeft = "10px";
+                status_label.innerText = status;
+                bd.appendChild(status_label);
+                elt.appendChild(bd);
+            });
+        }
+    );
+};
+
+
+function uniq(a) {
+    return a.sort().filter(function (item, pos, ary) {
+        return !pos || item != ary[pos - 1];
+    });
+}
+
+const addJob = function (job_id) {
+    jobs = JSON.parse(localStorage.getItem("jobs"));
+    if (jobs === null) {
+        jobs = [];
+    }
+    jobs.push(job_id);
+    jobs = uniq(jobs).reverse();
+    localStorage.setItem("jobs", JSON.stringify(jobs));
+};
+
 const submitJob = function () {
     const but = document.getElementById("submit-button");
     but.disabled = true;
@@ -70,7 +128,8 @@ const submitJob = function () {
         const status = res["status"];
 
         if (status == "success") {
-            document.getElementById("job-id-input").value = res["job_id"];
+            addJob(res["job_id"]);
+            renderJobs();
             but.disabled = false;
             but.style.opacity = 1.0;
         }
@@ -81,8 +140,10 @@ const submitJob = function () {
     });
 };
 
-const updateDataset = function (dataset) {
-    fetch("DatasetHandler", {
+MMP_OVERVIEW_DATA = [];
+const retrieveResults = function (job_id) {
+
+    fetch("WispOverviewPage", {
 
         method: "POST",
         headers: {
@@ -91,9 +152,8 @@ const updateDataset = function (dataset) {
 
         ,
         body: JSON.stringify({
-            "csv": dataset
+            "job_id": job_id
         })
-
     }).then(res => res.json()).then(res => {
         console.log("Request complete! response:", res);
         const status = res["status"];
@@ -101,16 +161,74 @@ const updateDataset = function (dataset) {
         if (status == "success") {
 
             IMAGES = res["images"];
-            MOLECULE_IMAGES = res["molecule_images"];
+            //MOLECULE_IMAGES = res["molecule_images"];
 
             refreshFirstPage();
-            refreshSecondPage();
+            //refreshSecondPage();
         }
 
         else {
             alert("failure could not parse input!");
         }
-    });
+    }).then(
+
+        fetch("HeatMaps", {
+
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                "job_id": job_id
+            })
+        }).then(res => res.json()).then(res => {
+            console.log("Request complete! response:", res);
+            const status = res["status"];
+
+            if (status == "success") {
+
+                //IMAGES = res["images"];
+                MOLECULE_IMAGES = res["heatmaps"];
+                LEGEND_IMAGE = res["legend"];
+
+                //refreshFirstPage();
+                refreshSecondPage();
+            }
+
+            else {
+                alert("failure could not parse input!");
+            }
+        }
+        )
+    ).then(
+        fetch("MMPOverview", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                "job_id": job_id
+            })
+        }).then(res => res.json()).then(res => {
+            console.log("Request complete! response:", res);
+            const status = res["status"];
+
+            if (status == "success") {
+                //IMAGES = res["images"];
+                MMP_OVERVIEW_DATA = res["mmp_overview_data"];
+                if (typeof MMP_OVERVIEW_DATA === 'string' || MMP_OVERVIEW_DATA instanceof String)
+                    MMP_OVERVIEW_DATA = JSON.parse(MMP_OVERVIEW_DATA);
+
+                //refreshFirstPage();
+                //refreshSecondPage();
+                renderMMPOverview(MMP_OVERVIEW_DATA);
+            }
+
+            else {
+                alert("failure could not parse input!");
+            }
+        })
+    );
 };
 
 const styleImage = function (img) {
@@ -135,6 +253,7 @@ const refreshFirstPage = function () {
     const explain_pred_label = document.createElement("div");
     explain_pred_label.innerText = "How well can we explain predictions?";
     const explain_pred_img = document.createElement('img');
+    explain_pred_img.classList.add("zoomable");
 
     const col = "PREDvsCONTRIBUTIONSfragmentAtom Attributions_Training_Set.png";
     explain_pred_img.src = "data:image/png;base64," + IMAGES[col];
@@ -154,6 +273,8 @@ const refreshFirstPage = function () {
     explain_exp_label.innerText = "How well can we explain reality?";
     const explain_exp_img = document.createElement('img');
 
+    explain_exp_img.classList.add("zoomable");
+
     const col2 = "EXPvsCONTRIBUTIONSwholeAtom Attributions_Test_Set.png";
     explain_exp_img.src = "data:image/png;base64," + IMAGES[col2];
     styleImage(explain_exp_img);
@@ -170,38 +291,41 @@ const refreshFirstPage = function () {
     const cp2 = document.createElement("div");
     cp2.style.display = "table-row";
 
-    // Top Left -- How well can we explain predictions?
-    const examples_div = document.createElement("div");
-    const examples_label = document.createElement("div");
-    examples_label.innerText = "Molecular explanation examples:";
-    const examples_img = document.createElement('img');
 
-    const col3 = "positive_examples_Atom Attributions-Training.png";
-    examples_img.src = "data:image/png;base64," + IMAGES[col3];
-    styleImage(examples_img);
-    examples_img.style.width = "600px";
+    if (false) {
+        // Top Left -- How well can we explain predictions?
+        const examples_div = document.createElement("div");
+        const examples_label = document.createElement("div");
+        examples_label.innerText = "Molecular explanation examples:";
+        const examples_img = document.createElement('img');
 
-    examples_div.appendChild(examples_label);
-    const slider_div = document.createElement("div");
-    slider_div.innerHTML = ` <input type="range" style="width: 200px;" id="saturation-slider" min="0" max="10000" value="100">`;
-    const slider = slider_div.children[0];
+        const col3 = "positive_examples_Atom Attributions-Training.png";
+        examples_img.src = "data:image/png;base64," + IMAGES[col3];
+        styleImage(examples_img);
+        examples_img.style.width = "600px";
 
-    slider.addEventListener('input', function () {
-        const saturationValue = slider.value;
+        examples_div.appendChild(examples_label);
+        const slider_div = document.createElement("div");
+        slider_div.innerHTML = ` <input type="range" style="width: 200px;" id="saturation-slider" min="0" max="10000" value="100">`;
+        const slider = slider_div.children[0];
 
-        examples_img.style.filter = `saturate($ {
+        slider.addEventListener('input', function () {
+            const saturationValue = slider.value;
+
+            examples_img.style.filter = `saturate($ {
                             saturationValue
                         }
 
                         %)`;
-    });
-    examples_div.appendChild(slider_div);
-    examples_div.appendChild(examples_img);
+        });
+        examples_div.appendChild(slider_div);
+        examples_div.appendChild(examples_img);
 
-    examples_div.style.display = "inline";
-    examples_div.style.display = "table-cell";
-    examples_div.style.width = "350px";
-    cp2.appendChild(examples_div);
+        examples_div.style.display = "inline";
+        examples_div.style.display = "table-cell";
+        examples_div.style.width = "350px";
+        cp2.appendChild(examples_div);
+    }
 
     tab.append(cp);
 
@@ -212,23 +336,80 @@ const refreshFirstPage = function () {
 // An example showing how one could display molecules
 // in a grid. Not needed any more, just for reference
 // pagination handling of images
-PAGE_SIZE = 4
+PAGE_SIZE = 16
+COL_SIZE = 4
 CURRENT_PAGE = 0;
 MOLECULE_IMAGES = [];
+LEGEND_IMAGE = null;
 
 const refreshSecondPage = function () {
     const cp = document.getElementById("result-div-2");
     cp.innerHTML = "";
     const startP = CURRENT_PAGE * PAGE_SIZE;
 
+    const div_gallery = document.createElement("div");
+
+    const but_div = document.createElement("div");
+    const but_left = document.createElement("button");
+    const N_PAGES = Math.ceil(MOLECULE_IMAGES.length / PAGE_SIZE);
+    but_left.id = "left-button";
+    but_left.innerText = "<";
+    const but_right = document.createElement("button");
+    but_right.id = "right-button";
+    but_right.innerText = ">";
+
+    const page_label = document.createElement("p");
+    page_label.innerText = `${CURRENT_PAGE + 1} / ${N_PAGES}`;
+    page_label.style.color = "black";
+    page_label.style.display = "inline";
+
+    but_left.classList.add("nav-button");
+    but_right.classList.add("nav-button");
+
+    but_left.onclick = function (evt) {
+        CURRENT_PAGE = Math.max(0, CURRENT_PAGE - 1);
+        refreshSecondPage();
+    };
+    but_right.onclick = function (evt) {
+        CURRENT_PAGE = Math.min(N_PAGES - 1, CURRENT_PAGE + 1);
+        refreshSecondPage();
+    };
+
+    but_div.style.position = "absolute";
+    but_div.style.top = "-2%";
+    but_div.style.right = "-2%";
+    but_div.appendChild(but_left);
+    but_div.appendChild(page_label);
+    but_div.appendChild(but_right);
+    div_gallery.appendChild(but_div);
+
+    const imgLeg = document.createElement('img');
+    imgLeg.src = "data:image/png;base64," + LEGEND_IMAGE;
+    imgLeg.style.width = "150px";
+    imgLeg.classList.add("zoomable");
+
+    div_gallery.appendChild(imgLeg)
+
+    const elt_ul = document.createElement("ul");
+
+    elt_ul.classList.add("gallery");
     for (var q = 0; q < PAGE_SIZE; q++) {
         const image = MOLECULE_IMAGES[q + startP];
         const imgElement = document.createElement('img');
         //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
         //document.getElementById("pngImage").src = "data:image/png;base64," + image;
-        imgElement.src = "data:image/png;base64," + image;
-        cp.appendChild(imgElement);
+        if (image) {
+            imgElement.src = "data:image/png;base64," + image;
+        }
+        //styleImage(imgElement);
+        imgElement.style.width = "150px";
+
+        const elt_li = document.createElement("li");
+        elt_li.appendChild(imgElement)
+        elt_ul.appendChild(elt_li)
     }
+    div_gallery.appendChild(elt_ul);
+    cp.appendChild(div_gallery);
 }
 
 
@@ -260,7 +441,7 @@ window.onload = () => {
     coll = document.getElementsByClassName("collapsiblex");
     i = 0;
 
-    const contents = { "Jobs": "job-id-div", "Overview": "result-div", "Evaluation": "result-div-2" }
+    const contents = { "Jobs": "job-id-div", "Evaluation": "result-div", "Atom Contributions": "result-div-2", "MMP Overview": "result-div-3" }
     for (i = 0; i < coll.length; i++) {
         const elt = coll[i];
         const clicked_on = elt.innerText;
@@ -281,3 +462,195 @@ window.onload = () => {
     // initialize state properly
     coll[0].click();
 };
+
+RDKit = null;
+
+initRDKitModule().then(function (instance) {
+    RDKit = instance;
+    console.log("RDKit loaded.");
+});
+
+const displaySmiles = function (smiles) {
+    const mol = RDKit.get_mol(smiles);
+    return mol.get_svg();
+};
+
+
+const renderMMPOverview = function (data) {
+
+    const svg = d3.select("#mmp-overview");
+    svg.selectAll("*").remove(); // Clear the canvas
+
+    //const margin = { top: 20, right: 30, bottom: 30, left: 120 };
+    const margin = { top: 40, right: 60, bottom: 60, left: 200 };
+
+
+
+    if (!data)
+        // Toy data: array of objects with target_diff and MMP_rule
+        data = [
+            { target_diff: 0.2, MMP_rule: 'Rule A' },
+            { target_diff: 0.4, MMP_rule: 'Rule A' },
+            { target_diff: 0.35, MMP_rule: 'Rule A' },
+            { target_diff: 0.5, MMP_rule: 'Rule A' },
+            { target_diff: 0.1, MMP_rule: 'Rule B' },
+            { target_diff: 0.12, MMP_rule: 'Rule B' },
+            { target_diff: 0.15, MMP_rule: 'Rule B' },
+            { target_diff: 0.18, MMP_rule: 'Rule B' },
+            { target_diff: 0.3, MMP_rule: 'Rule C' },
+            { target_diff: 0.28, MMP_rule: 'Rule C' },
+            { target_diff: 0.32, MMP_rule: 'Rule C' },
+            { target_diff: 0.34, MMP_rule: 'Rule C' }
+        ];
+
+    // Group by MMP_rule
+    var groups = Array.from(
+        d3.group(data, d => d.MMP_rule),
+        ([key, values]) => ({
+            MMP_rule: key,
+            values: values.map(d => d.target_diff),
+            smiles_1: values.map(d => d.smiles_1),
+            smiles_2: values.map(d => d.smiles_2),
+        })
+    );
+
+
+    // Sort alphabetically
+    // groups.sort((a, b) => d3.ascending(a.MMP_rule, b.MMP_rule));
+    // Sort by value
+    groups.sort((a, b) => d3.mean(a.values) - d3.mean(b.values));
+
+    // Keep only the top/bottom 10 elements
+    const top10 = groups.slice(-10); // highest means
+    const bottom10 = groups.slice(0, 10); // lowest means
+
+    // Merge and re-sort however you want (e.g., descending by mean)
+    const filter_top = false;
+    if (filter_top)
+        groups = [...bottom10, ...top10];
+
+    const rowHeight = 20;
+    const height = groups.length * rowHeight + margin.top + margin.bottom;
+
+    // Update the SVG height
+    svg.attr("height", height);
+
+    const width = +svg.attr("width");
+    //const height = +svg.attr("height");
+
+    const allDiffs = data.map(d => d.target_diff);
+
+    const x = d3.scaleLinear()
+        .domain(d3.extent(allDiffs))
+        .range([margin.left, width - margin.right]);
+
+    const y = d3.scaleBand()
+        .domain(groups.map(g => g.MMP_rule))
+        .range([margin.top, height - margin.bottom])
+        .paddingInner(0.3);
+
+    // This one here gave poor results:
+    // const kde = kernelDensityEstimator(kernelEpanechnikov(0.02), x.ticks(100));
+    const kde = kernelDensityEstimator(kernelGaussian(0.25), x.ticks(100));
+
+    const maxDensity = d3.max(groups, g => d3.max(kde(g.values), d => d[1]));
+
+    const AMPLIFICATION_FACTOR = 1.0;
+    const yScale = d3.scaleLinear()
+        .domain([0, maxDensity])
+        .range([0, y.bandwidth() * AMPLIFICATION_FACTOR]);
+
+    // X Axis
+    svg.append("g")
+        .attr("transform", `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).ticks(6))
+        .append("text")
+        .attr("x", width / 2)
+        .attr("y", 25)
+        .attr("fill", "black")
+        .attr("text-anchor", "middle")
+        .text("target_diff");
+
+    // Draw the curves
+    groups.forEach((g, i) => {
+        const density = kde(g.values);
+
+        const area = d3.area()
+            .x(d => x(d[0]))
+            .y0(y(g.MMP_rule) + y.bandwidth() / 2)
+            .y1(d => y(g.MMP_rule) + y.bandwidth() / 2 - yScale(d[1]))
+            .curve(d3.curveBasis);
+
+        svg.append("path")
+            .datum(density)
+            .attr("class", "area")
+            .attr("fill", i % 2 === 0 ? "#2452baff" : "#a2bff4ff") // alternate shades
+            .attr("d", area);
+
+        svg.append("text")
+            .attr("x", margin.left - 10)
+            .attr("y", y(g.MMP_rule) + y.bandwidth() / 2)
+            .attr("text-anchor", "end")
+            .attr("class", "group-label")
+            .text(g.MMP_rule);
+
+        // Scatterplot the single datapoints
+        g.values.forEach((value, i) => {
+            svg.append("circle")
+                .attr("cx", x(value))
+                .attr("cy", y(g.MMP_rule) + y.bandwidth() / 2) // vertically center
+                .attr("r", 3)
+                .attr("fill", "black")
+                .attr("opacity", 0.6)
+                .on("mouseover", function (event) {
+                    d3.select(this)
+                        .transition()
+                        .duration(150)
+                        .attr("r", 6)
+                        .attr("fill", "red");
+
+                    const toolt = d3.select("#tooltip")
+                        .style("opacity", 1)
+                        .html(`<p style="margin:0px; padding:0px;">target_diff: ${value.toFixed(3)}</p> ${displaySmiles(g.smiles_1[i])} <p class="mmp-arrow"> => </p> ${displaySmiles(g.smiles_2[i])}`)
+                        .style("left", `${event.pageX + 10}px`)
+                        .style("top", `${event.pageY - 20}px`);
+                    toolt.selectAll("svg").style("width", "150px").style("height", "150px").style("margin", "5px");
+                    toolt.selectAll(".mmp-arrow").style("position", "absolute").style("top", "50%").style("left", "48%");
+                })
+                .on("mouseout", function () {
+                    d3.select(this)
+                        .transition()
+                        .duration(150)
+                        .attr("r", 3)
+                        .attr("fill", "black");
+
+                    d3.select("#tooltip")
+                        .style("opacity", 0);
+                });;
+        });
+    });
+
+
+    // KDE functions
+    function kernelDensityEstimator(kernel, X) {
+        return function (V) {
+            return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
+        };
+    }
+
+    function kernelEpanechnikov(k) {
+        return function (v) {
+            return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+        };
+    }
+    function kernelGaussian(bandwidth) {
+        return function (v) {
+            return (1 / (Math.sqrt(2 * Math.PI) * bandwidth)) * Math.exp(-0.5 * (v / bandwidth) ** 2);
+        };
+    }
+};
+
+window.addEventListener("load", (event) => {
+    renderJobs();
+    renderMMPOverview();
+});
