@@ -29,8 +29,8 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.linear_model import Lasso
 from sklearn.svm import SVR
 
-from wisp.plotting_helper import *
-from wisp.chemprop import *
+from WISP.plotting_helper import *
+from WISP.chemprop import *
 
 def get_features(data, CLOUMS):
     """

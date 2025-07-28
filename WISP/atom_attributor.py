@@ -4,7 +4,7 @@ from rdkit.Chem.rdchem import PeriodicTable
 import numpy as np
 import pandas as pd
 
-from wisp.ml_helper import *
+from WISP.ml_helper import *
 
 # Organic subset as defined by RDKit
 ORGANIC_ATOM_SYMBOLS = [
