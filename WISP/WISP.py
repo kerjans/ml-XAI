@@ -11,15 +11,15 @@ warnings.filterwarnings("ignore", module="sklearn")
 
 
 from standardizer.mol_standardizer import *
-from wisp.ml_helper import *
-from wisp.SHAP_MORGAN_attributor import *
-from wisp.plotting_helper import *
-from wisp.atom_attributor import *
-from wisp.dropout_attributor import *
-from wisp.path_attributor import *
-from wisp.RDKit_attributor import *
-from wisp.create_MMPs import *
-from wisp.get_indices import *
+from WISP.ml_helper import *
+from WISP.SHAP_MORGAN_attributor import *
+from WISP.plotting_helper import *
+from WISP.atom_attributor import *
+from WISP.dropout_attributor import *
+from WISP.path_attributor import *
+from WISP.RDKit_attributor import *
+from WISP.create_MMPs import *
+from WISP.get_indices import *
 
 def detect_binary_classification(data, Target_Column_Name):
     """
@@ -96,12 +96,27 @@ def suppress_output():
             sys.stdout = old_stdout
             sys.stderr = old_stderr
 
-# Careful: input_dir is actually input_file!
 def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Column_Name, model_available=None, use_GNN=True):
-    '''
+    """
     If you have your model available please place it in the working_dir as model.pkl
     Input as comma seperated file
-    '''
+
+    Load data, standardize SMILES, train or load a model, compute atom‐level attributions,
+    generate heatmaps and matched‐molecular‐pair (MMP) analyses, then return the MMP DataFrame as well as the analyses plots.
+
+    Parameters:
+        working_dir (str): Directory for outputs (models, plots, CSVs).
+        input_dir (str): Path to the input CSV file.
+        ID_Column_Name (str): Name of the ID column in the CSV.
+        Smiles_Column_Name (str): Name of the SMILES column in the CSV.
+        Target_Column_Name (str): Name of the target column (regression or binary class).
+        model_available (str or None): If provided, loads “model.pkl” from working_dir
+            and skips training; else trains a new model.
+        use_GNN (bool): If True, include graph‐neural‐network models in the search.
+
+    Returns:
+        pd.DataFrame: The final MMP DataFrame with predictions, attributions, plots, and metrics.
+    """
     #Interactive questions
     if model_available is not None:
         print('Please provide the name of the function to create the features based on smiles as input:')
