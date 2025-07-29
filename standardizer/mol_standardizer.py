@@ -292,13 +292,28 @@ class Standardizer(object):
         return smi_clean, None
     
 def filter_duplicates(df, duplicate_identifier, Target_Column_Name):
+    """
+    Drop rows that share the same identifier but have conflicting targets; 
+    if duplicates all agree on the target, keep a single representative.
+
+    Parameters:
+        df (pd.DataFrame): Input DataFrame.
+        duplicate_identifier (str): Column name used to detect duplicates (e.g., standardized SMILES).
+        Target_Column_Name (str): Column name of the target; used to check consistency within each duplicate group.
+
+    Returns:
+        pd.DataFrame: A DataFrame where
+            - Unique-identifier rows are untouched.
+            - Duplicate-identifier rows with differing targets are removed.
+            - Duplicate-identifier rows with identical targets have one row retained.
+    """
     duplicates = df[df.duplicated(duplicate_identifier, keep=False)]
     indices_to_keep = []
     for smiles, group in duplicates.groupby(duplicate_identifier):
         if len(group[Target_Column_Name].unique()) == 1:
             # If all targets are the same, keep the first occurrence
             indices_to_keep.append(group.index[0])
-    # Drop all duplicates and keep only the desired entries
+
     filtered_df = df.drop_duplicates(subset=duplicate_identifier, keep=False)
     filtered_df = pd.concat([filtered_df, df.loc[indices_to_keep]]).reset_index(drop=True)
     return filtered_df

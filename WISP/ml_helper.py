@@ -32,20 +32,20 @@ from sklearn.svm import SVR
 from WISP.plotting_helper import *
 from WISP.chemprop import *
 
-def get_features(data, CLOUMS):
+def get_features(data, COLUMNS):
     """
     Preprocesses the features according to theyr type.
 
     Keyword arguments:
     -- data: Table where the features are stored.
-    -- CLOUMS: Colum where the feature is stored.
+    -- COLUMNS: Column where the feature is stored.
 
     Returns:
     -- X: Preprocessed feature.
     """
     features = []
 
-    for i in CLOUMS:
+    for i in COLUMNS:
         if type(data[i].values[0]) is np.ndarray:
             x = np.stack(data[i].values)
         else:
@@ -71,7 +71,6 @@ def get_morgan_fingerprint(smiles):
     if mol is not None:
         generator = GetMorganGenerator(radius=2, fpSize=2048)
         fingerprint = generator.GetFingerprint(mol)
-        #fingerprint = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048)
         fingerprint = fingerprint.ToBitString()
         fingerprint = np.array(list(fingerprint))
         return fingerprint
@@ -121,7 +120,33 @@ def get_RDK_fingerprint(smiles):
     else:
         return None
     
-def hp_search_helper(model,df_train,target,feature):
+def hp_search_helper(model, df_train, target,feature):
+    """
+    Perform a halving random‐search for hyperparameters on a scaler+model pipeline,
+    then evaluate cross‐validated performance on df_train.
+
+    Parameters:
+        model (sklearn estimator):
+            An unfitted classifier or regressor instance.
+        df_train (pd.DataFrame):
+            Training data containing feature columns and a target column.
+        target (str):
+            Name of the target column in df_train.
+        feature (any):
+            Argument forwarded to `get_features(df, feature)` to extract model inputs.
+
+    Returns:
+        best_estimator (Pipeline):
+            The pipeline (StandardScaler + model) refit on the full training set.
+        mean_r2 (float):
+            Average squared Pearson correlation (r²) across CV folds.
+        mean_R2 (float):
+            Average coefficient of determination across folds.
+        mean_MAE (float):
+            Average mean absolute error across folds.
+        mean_RMSE (float):
+            Average root mean squared error across folds.
+    """
     
     PARAM_GRID = {
     'SVC': {'model__C': [0.1, 1, 10, 100], 'model__kernel': ['rbf'], 'model__class_weight': ['balanced'], 'model__gamma': ['scale', 'auto', 1, 0.001, 0.01, 0.1]},
@@ -167,14 +192,14 @@ def hp_search_helper(model,df_train,target,feature):
 
     pipe.fit(prep_train, target_train)
 
-    splitted_data = kf.split(df_train)
+    splits_data = kf.split(df_train)
 
-    correlation_coff = []
+    correlation_coeff = []
     coef_of_determ = []
     mean_AE = []
     RMSE =[]
 
-    for train_fold, test_fold in splitted_data:
+    for train_fold, test_fold in splits_data:
         train_data = df_train.iloc[train_fold]
         test_data = df_train.iloc[test_fold]
 
@@ -190,7 +215,7 @@ def hp_search_helper(model,df_train,target,feature):
 
         #stats
         r2 = np.corrcoef(target_test.flatten(), predictions.flatten())[0,1]**2
-        correlation_coff.append(r2)
+        correlation_coeff.append(r2)
         
         RMSE_z = np.sqrt(np.mean((target_test.flatten() - predictions.flatten())**2))
         RMSE_n = np.sqrt(np.mean((target_test.flatten() - np.mean(target_test.flatten()))**2))
@@ -204,27 +229,56 @@ def hp_search_helper(model,df_train,target,feature):
         rmse = np.sqrt(mse)
         RMSE.append(rmse)
 
-    mean_r2 = statistics.mean(correlation_coff)
+    mean_r2 = statistics.mean(correlation_coeff)
     mean_R2 = statistics.mean(coef_of_determ)
     mean_MAE = statistics.mean(mean_AE)
     mean_RMSE = statistics.mean(RMSE)
     
     return pipe.best_estimator_, mean_r2, mean_R2, mean_MAE, mean_RMSE
 
-def split_data(data, Target_Column_Name, working_dir):
-    nr_test_samples = round(len(data) / 5) # 80/20 split
+def split_data(data, Target_Column_Name):
+    """
+    Split a DataFrame into an 80/20 train/test split and return the test set,
+    its target values, and the remaining training set.
+
+    Parameters:
+        data (pd.DataFrame): Full dataset containing features and target.
+        Target_Column_Name (str): Name of the target column in `data`.
+
+    Returns:
+        test (pd.DataFrame): Randomly sampled ~20% of the rows.
+        target_test (np.ndarray): 1D array of target values for `test`.
+        train (pd.DataFrame): The remaining ~80% of the rows.
+    """
+    nr_test_samples = round(len(data) / 5)
     test = data.sample(n=nr_test_samples, random_state=6)
     target_test = test[Target_Column_Name].values
     train = data.drop(test.index)
-    #plot_histogram(test, train,  Target_Column_Name, 'Target', 'Stucture Count', 'Test Set', 'Train Set',  working_dir + 'Count-Bins-test-train.png')
     return test, target_test, train
 
 def features_and_reg_model_types(data):
+    """
+    Generate molecular fingerprint features and return regression model candidates.
+
+    Parameters:
+        data (pd.DataFrame): Must contain a 'smiles_std' column of standardized SMILES strings.
+
+    Returns:
+        data (pd.DataFrame):
+            The input DataFrame augmented with:
+              - 'Morgan_Fingerprint 2048Bit 2rad'
+              - 'MACCS_Fingerprint'
+              - 'RDK_Fingerprint'
+        feature_columns (list of str):
+            Names of the fingerprint columns added above.
+        model_types (list of sklearn estimators):
+            A list of untrained regression model instances to try.
+    """
     data['Morgan_Fingerprint 2048Bit 2rad'] = data['smiles_std'].apply(get_morgan_fingerprint)
     data['MACCS_Fingerprint'] = data['smiles_std'].apply(get_MACCS_fingerprint)
     data['RDK_Fingerprint'] = data['smiles_std'].apply(get_RDK_fingerprint)
 
-    ALLfeatureCOLUMS = ['Morgan_Fingerprint 2048Bit 2rad',
+    ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
             'RDK_Fingerprint',
             'MACCS_Fingerprint']
         
@@ -236,14 +290,28 @@ def features_and_reg_model_types(data):
             RandomForestRegressor(), 
             SVR(),
             GaussianProcessRegressor(kernel=Matern())]
-    return data, ALLfeatureCOLUMS, model_types
+    return data, ALLfeatureCOLUMNS, model_types
 
 def features_and_class_model_types(data):
+    """
+    Create fingerprint features and return classification model candidates.
+
+    Parameters:
+        data (pd.DataFrame): Must have a 'smiles_std' column of standardized SMILES.
+
+    Returns:
+        data (pd.DataFrame): The input augmented with:
+            - 'Morgan_Fingerprint 2048Bit 2rad'
+            - 'MACCS_Fingerprint'
+            - 'RDK_Fingerprint'
+        feature_columns (list of str): Names of the added fingerprint columns.
+        model_types (list): Unfitted classification model instances to try.
+    """
     data['Morgan_Fingerprint 2048Bit 2rad'] = data['smiles_std'].apply(get_morgan_fingerprint)
     data['MACCS_Fingerprint'] = data['smiles_std'].apply(get_MACCS_fingerprint)
     data['RDK_Fingerprint'] = data['smiles_std'].apply(get_RDK_fingerprint)
 
-    ALLfeatureCOLUMS = ['Morgan_Fingerprint 2048Bit 2rad',
+    ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
             'RDK_Fingerprint',
             'MACCS_Fingerprint']
         
@@ -252,20 +320,37 @@ def features_and_class_model_types(data):
             RandomForestClassifier(), 
             SVC(),
             GaussianProcessClassifier()]
-    return data, ALLfeatureCOLUMS, model_types
+    return data, ALLfeatureCOLUMNS, model_types
 
-def get_best_reg_model(model_types, ALLfeatureCOLUMS, train, Target_Column_Name, working_dir, use_GNN):
+def get_best_reg_model(model_types, ALLfeatureCOLUMNS, train, Target_Column_Name, working_dir, use_GNN):
+    """
+    Try GNN (optional) and grid‐searched regressors on fingerprint features, 
+    then pick and return the best model and its feature function based on the MAE.
+
+    Parameters:
+        model_types (list): Unfitted regressor instances to tune.
+        ALLfeatureCOLUMNS (list of str): Names of fingerprint columns in `train`.
+        train (pd.DataFrame): Training set with features and target.
+        Target_Column_Name (str): Name of the regression target column.
+        working_dir (str): Directory for checkpoints and CSV output.
+        use_GNN (bool): If True, train/evaluate a Chemprop GNN first.
+
+    Returns:
+        best_model:    The fitted model with lowest MAE.
+        feature_fn:    Function used to compute features for that model.
+        feature_cols:  List containing the single feature column name.
+    """
     results = []
 
     if use_GNN is True:
         checkpoint_dir = working_dir + 'checkpoints/' 
         if os.path.exists(checkpoint_dir) and os.path.isdir(checkpoint_dir):
             shutil.rmtree(checkpoint_dir) #deletes old checkpoint dir
-        r2, R2, MAE, RMSE = train_GNN(train, 'smiles_std', Target_Column_Name, working_dir)#############################
-        model_GNN = SklChemprop(problem_type="regression", max_epochs=50, Smiles_Column_Name='smiled_std', Target_Column_Name=Target_Column_Name, working_dir=working_dir)##################
-        results.append({'Feature': 'smiles_std','Model_Type': 'SklChemprop','Model': model_GNN,'r2': r2,'R2': R2,'MAE': MAE,'RMSE': RMSE})##################
+        r2, R2, MAE, RMSE = train_GNN(train, 'smiles_std', Target_Column_Name, working_dir)
+        model_GNN = SklChemprop(problem_type="regression", max_epochs=50, Smiles_Column_Name='smiled_std', Target_Column_Name=Target_Column_Name, working_dir=working_dir)
+        results.append({'Feature': 'smiles_std','Model_Type': 'SklChemprop','Model': model_GNN,'r2': r2,'R2': R2,'MAE': MAE,'RMSE': RMSE})
     for model_arc in model_types:          
-        for feature in ALLfeatureCOLUMS:
+        for feature in ALLfeatureCOLUMNS:
             model, r2, R2, MAE, RMSE = hp_search_helper(model_arc,train,Target_Column_Name,[str(feature)])
             results.append({'Feature': feature,'Model_Type': model_arc,'Model': model,'r2': r2,'R2': R2,'MAE': MAE,'RMSE': RMSE})
 
@@ -290,14 +375,21 @@ def get_best_reg_model(model_types, ALLfeatureCOLUMS, train, Target_Column_Name,
         feature_function = get_RDK_fingerprint
     if best_model_row['Feature'] == 'MACCS_Fingerprint':
         feature_function = get_MACCS_fingerprint
-    if best_model_row['Feature'] == 'smiles_std':#############################
-        feature_function = identity#######################
+    if best_model_row['Feature'] == 'smiles_std':
+        feature_function = identity
 
-    featureCOLUMS = [best_model_row['Feature']]
+    featureCOLUMNS = [best_model_row['Feature']]
 
-    return model, feature_function, featureCOLUMS
+    return model, feature_function, featureCOLUMNS
 
 class ProbabilisticRandomForest:
+    """
+    A thin wrapper around sklearn’s RandomForestClassifier that:
+      - uses predict(X) to return the probability of the positive class (column 1)
+      - provides a separate predict_classes(X) for hard labels
+      - delegates all other attributes/methods to the underlying classifier
+      - supports pickle via __getstate__/__setstate__
+    """
     def __init__(self, **kwargs):
         self.model = RandomForestClassifier(**kwargs)
 
@@ -305,7 +397,6 @@ class ProbabilisticRandomForest:
         return self.model.fit(X, y)
 
     def predict(self, X):
-        #return self.model.predict_proba(X)
         proba = self.model.predict_proba(X)
         return proba[:, 1]
 
@@ -313,7 +404,7 @@ class ProbabilisticRandomForest:
         return self.model.predict(X)
 
     def __getattr__(self, attr):
-        # Delegate attribute access to the underlying model
+        # delegate attribute access to the underlying model
         return getattr(self.model, attr)
     
     def __getstate__(self):
@@ -335,43 +426,48 @@ class ProbabilisticRandomForest:
         return self.model.classes_
 
 def get_and_train_class_model(train, test, Target_Column_Name, target_test, working_dir):
-    
+    """
+    Train a probabilistic random forest on Morgan fingerprints, evaluate on the test set,
+    print classification metrics, save the fitted model, and return the pipeline and feature info.
+
+    Parameters:
+        train (pd.DataFrame): Training data with a 'smiles_std' column and target column.
+        test (pd.DataFrame): Test data in the same format.
+        Target_Column_Name (str): Name of the target column in train/test.
+        target_test (np.ndarray): 1D array of true labels for test.
+        working_dir (str): Directory where 'model.pkl' will be saved.
+
+    Returns:
+        model (Pipeline): Fitted sklearn Pipeline (StandardScaler + ProbabilisticRandomForest).
+        feature_function (callable): get_morgan_fingerprint.
+        feature_columns (list of str): ['Morgan_Fingerprint 2048Bit 2rad'].
+    """    
     #fixed settings
     feature_function = get_morgan_fingerprint
-    featureCOLUMS = ['Morgan_Fingerprint 2048Bit 2rad']
-    #model = Pipeline(steps=[('scaler', StandardScaler()),
-                #('model',
-                 #RandomForestClassifier(random_state=42))])
+    featureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad']
     model = Pipeline(steps=[('scaler', StandardScaler()),
                 ('model',
                  ProbabilisticRandomForest(random_state=42))])
 
     #train on whole training set
-    prep_train = get_features(train, featureCOLUMS)
+    prep_train = get_features(train, featureCOLUMNS)
     target_train = train[Target_Column_Name].values
     model.fit(prep_train, target_train)
 
     #performance on test set
-    prep_test = get_features(test, featureCOLUMS)
+    prep_test = get_features(test, featureCOLUMNS)
     predictions = model.predict(prep_test)
 
-    #statistic on testset
+    #statistic on test set
     predicted_labels = (predictions >= 0.5).astype(int)
     accuracy = accuracy_score(target_test, predicted_labels)
     precision = precision_score(target_test, predicted_labels, average='weighted')
     recall = recall_score(target_test, predicted_labels, average='weighted')
     f1 = f1_score(target_test, predicted_labels, average='weighted')
     conf_matrix = confusion_matrix(target_test, predicted_labels)
-    '''
-    accuracy = accuracy_score(target_test, predictions)
-    precision = precision_score(target_test, predictions, average='weighted')  # or 'macro', 'micro'
-    recall = recall_score(target_test, predictions, average='weighted')
-    f1 = f1_score(target_test, predictions, average='weighted')
-    conf_matrix = confusion_matrix(target_test, predictions)
-    '''
 
-    # Print results
-    print("Performance on testset:")
+    #print results
+    print("Performance on test set:")
     print(f"Accuracy: {accuracy}")
     print(f"Precision: {precision}")
     print(f"Recall: {recall}")
@@ -380,22 +476,44 @@ def get_and_train_class_model(train, test, Target_Column_Name, target_test, work
 
     pickle.dump(model, open(working_dir + "model.pkl", "wb"))
 
-    return model, feature_function, featureCOLUMS
+    return model, feature_function, featureCOLUMNS
 
 
-def train_and_evaluate_reg_model(model, train, test, featureCOLUMS, Target_Column_Name, target_test, working_dir):
+def train_and_evaluate_reg_model(model, train, test, featureCOLUMNS, Target_Column_Name, target_test, working_dir):
+    """
+    Train (if not a Chemprop model) and evaluate a regressor on an 80/20 split,
+    printing key metrics, plotting true vs. predicted values, and saving the model.
 
+    Parameters:
+        model (estimator or Pipeline):
+            The regression model or Pipeline to train/evaluate.
+        train (pd.DataFrame):
+            Training set containing feature columns and Target_Column_Name.
+        test (pd.DataFrame):
+            Test set containing feature columns and Target_Column_Name.
+        featureCOLUMNS (list of str):
+            Column names to pass to get_features() for X‐matrix construction.
+        Target_Column_Name (str):
+            Name of the target column in train/test DataFrames.
+        target_test (array‐like):
+            True target values for the test set.
+        working_dir (str):
+            Directory path where the plot and model.pkl are saved.
+
+    Returns:
+        None
+    """
     #train on whole training set
     if model.__class__.__name__ != "SklChemprop":
-        prep_train = get_features(train, featureCOLUMS)
+        prep_train = get_features(train, featureCOLUMNS)
         target_train = train[Target_Column_Name].values
         model.fit(prep_train, target_train)
 
     #performance on test set
-    prep_test = get_features(test, featureCOLUMS)
+    prep_test = get_features(test, featureCOLUMNS)
     predictions = model.predict(prep_test)
 
-    #statistic on testset
+    #statistic on test set
     r2 = np.corrcoef(target_test.flatten(), predictions.flatten())[0,1]**2
     RMSE_z = np.sqrt(np.mean((target_test.flatten() - predictions.flatten())**2))
     RMSE_n = np.sqrt(np.mean((target_test.flatten() - np.mean(target_test.flatten()))**2))
@@ -406,7 +524,7 @@ def train_and_evaluate_reg_model(model, train, test, featureCOLUMS, Target_Colum
     rmse = np.sqrt(mse)
 
     #print/plot results
-    print('Performance on testset(r2, R2, MAE, RMSE, Maximal Error, MSE):',r2,';',R2,';',MAE,';',rmse,';',max_err,';', mse)
+    print('Performance on test set(r2, R2, MAE, RMSE, Maximal Error, MSE):',r2,';',R2,';',MAE,';',rmse,';',max_err,';', mse)
 
     r2 = np.corrcoef(predictions.flatten(), target_test.flatten())[0,1]**2
     plot_2D(['$r^2$ = ' + str(f"{r2:.2f}")], 'upper left', predictions , target_test,
@@ -417,40 +535,43 @@ def train_and_evaluate_reg_model(model, train, test, featureCOLUMS, Target_Colum
     pickle.dump(model, open(working_dir + "model.pkl", "wb"))
 
 def add_predictions(data_MMPs, feature_function, model):
-    #for 1
+    """
+    Compute model predictions for the two SMILES columns of an MMP DataFrame.
+
+    Parameters:
+        data_MMPs (pd.DataFrame): Must contain 'smiles_1' and 'smiles_2' columns.
+        feature_function (callable): Converts a SMILES string to a feature vector.
+        model: Fitted estimator with a .predict(X) method.
+
+    Returns:
+        pd.DataFrame: The input DataFrame augmented with:
+            - 'Feature_1' and 'predictions_1' for smiles_1
+            - 'Feature_2' and 'predictions_2' for smiles_2
+    """
     data_MMPs['Feature_1'] = data_MMPs['smiles_1'].apply(feature_function)
     X_data_attributions_1 = get_features(data_MMPs, ['Feature_1'])
     predictions_1 = model.predict(X_data_attributions_1)
     data_MMPs['predictions_1'] = predictions_1
 
-    #for 2
     data_MMPs['Feature_2'] = data_MMPs['smiles_2'].apply(feature_function)
-    X_data_attributions_1 = get_features(data_MMPs, ['Feature_2'])
-    predictions_1 = model.predict(X_data_attributions_1)
-    data_MMPs['predictions_2'] = predictions_1
-    
-    return data_MMPs
-
-def train_test_dependency(data_MMPs, test, Attribution_Colums):
-    data_MMPs['set_1'] = data_MMPs['smiles_1'].isin(test['smiles_std']).map({True: 'test', False: 'train'})
-    data_MMPs['set_2'] = data_MMPs['smiles_2'].isin(test['smiles_std']).map({True: 'test', False: 'train'})
-
-    def compute_r2(data, label):
-        mask = data['set_1'].str.contains(label) & data['set_2'].str.contains(label)
-        filtered = data[mask]
-        for attr in Attribution_Colums:
-            r2 = np.corrcoef(
-                filtered['delta_prediction'],
-                filtered[f'delta_sum_{attr}']
-            )[0, 1] ** 2
-            print(f'{attr}_{label}:', r2)
-    
-    for split in ['train', 'test']:
-        compute_r2(data_MMPs, split)
+    X_data_attributions_2 = get_features(data_MMPs, ['Feature_2'])
+    predictions_2 = model.predict(X_data_attributions_2)
+    data_MMPs['predictions_2'] = predictions_2
     
     return data_MMPs
 
 def split_MMPs_by_set(data_MMPs, test):
+    """
+    Split an MMP DataFrame into pairs where both molecules are in the train or test split.
+
+    Parameters:
+        data_MMPs (pd.DataFrame): Must have 'smiles_1' and 'smiles_2' columns.
+        test (pd.DataFrame): Test‐set DataFrame with a 'smiles_std' column.
+
+    Returns:
+        train_set (pd.DataFrame): Rows where both smiles_1 and smiles_2 are outside the test set.
+        test_set  (pd.DataFrame): Rows where both smiles_1 and smiles_2 are in the test set.
+    """
     data_MMPs['set_1'] = data_MMPs['smiles_1'].isin(test['smiles_std']).map({True: 'test', False: 'train'})
     data_MMPs['set_2'] = data_MMPs['smiles_2'].isin(test['smiles_std']).map({True: 'test', False: 'train'})
 

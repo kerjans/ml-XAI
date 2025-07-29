@@ -15,8 +15,6 @@ from WISP.ml_helper import *
 from WISP.SHAP_MORGAN_attributor import *
 from WISP.plotting_helper import *
 from WISP.atom_attributor import *
-from WISP.dropout_attributor import *
-from WISP.path_attributor import *
 from WISP.RDKit_attributor import *
 from WISP.create_MMPs import *
 from WISP.get_indices import *
@@ -98,10 +96,7 @@ def suppress_output():
 
 def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Column_Name, model_available=None, use_GNN=True):
     """
-    If you have your model available please place it in the working_dir as model.pkl
-    Input as comma seperated file
-
-    Load data, standardize SMILES, train or load a model, compute atom‐level attributions,
+    Executes the main WISP workflow: Load data, standardize SMILES, train or load a model, compute atom‐level attributions,
     generate heatmaps and matched‐molecular‐pair (MMP) analyses, then return the MMP DataFrame as well as the analyses plots.
 
     Parameters:
@@ -111,27 +106,29 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
         Smiles_Column_Name (str): Name of the SMILES column in the CSV.
         Target_Column_Name (str): Name of the target column (regression or binary class).
         model_available (str or None): If provided, loads “model.pkl” from working_dir
-            and skips training; else trains a new model.
+            and skips training; else trains a new model. In this case you need to provide the feature 
+            function name, which is the function that converts the input smiles to the 
+            respective machine learning feature.
         use_GNN (bool): If True, include graph‐neural‐network models in the search.
 
     Returns:
         pd.DataFrame: The final MMP DataFrame with predictions, attributions, plots, and metrics.
     """
-    #Interactive questions
+    #interactive questions
     if model_available is not None:
         print('Please provide the name of the function to create the features based on smiles as input:')
         function_name = input().strip()
         feature_function = globals()[function_name]
         print(function_name)
 
-    #Load Data
+    #load Data
     data = pd.read_csv(input_dir)
     data.rename(columns={ID_Column_Name: 'ID'}, inplace=True)
 
     #set type
     task_type = detect_binary_classification(data, Target_Column_Name)   
 
-    #Preprocessing/Standadizing
+    #preprocessing/standardizing
     with suppress_output():
         std = Standardizer(max_num_atoms=1000,#tipp jan: 100
                     max_num_tautomers=10,
@@ -152,34 +149,34 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
 
         if task_type == 'regression':
 
-            #Calculate Fingerprints as Descriptors and set settings
-            data, ALLfeatureCOLUMS, model_types = features_and_reg_model_types(data)
+            #calculate fingerprints as descriptors and set settings
+            data, ALLfeatureCOLUMNS, model_types = features_and_reg_model_types(data)
 
             #test/train split
-            test, target_test, train = split_data(data, Target_Column_Name, working_dir)
+            test, target_test, train = split_data(data, Target_Column_Name)
             
             #find and train best model
-            model, feature_function, featureCOLUMS  = get_best_reg_model(model_types, ALLfeatureCOLUMS, train, Target_Column_Name, working_dir, use_GNN)
+            model, feature_function, featureCOLUMNS  = get_best_reg_model(model_types, ALLfeatureCOLUMNS, train, Target_Column_Name, working_dir, use_GNN)
 
-            train_and_evaluate_reg_model(model, train, test, featureCOLUMS, Target_Column_Name, target_test, working_dir)
+            train_and_evaluate_reg_model(model, train, test, featureCOLUMNS, Target_Column_Name, target_test, working_dir)
 
         if task_type == 'classification':
             
-            #Calculate Fingerprints as Descriptors and set settings
-            data, ALLfeatureCOLUMS, model_types = features_and_class_model_types(data)
+            #calculate fingerprints as descriptors and set settings
+            data, ALLfeatureCOLUMNS, model_types = features_and_class_model_types(data)
 
             #test/train split
-            test, target_test, train = split_data(data, Target_Column_Name, working_dir)
+            test, target_test, train = split_data(data, Target_Column_Name)
 
             #find and train standard model
-            model, feature_function, featureCOLUMS  = get_and_train_class_model(train, test, Target_Column_Name, target_test, working_dir)
+            model, feature_function, featureCOLUMNS  = get_and_train_class_model(train, test, Target_Column_Name, target_test, working_dir)
 
 
     #load the provided or just trained model
     model = pickle.load(open(working_dir + "model.pkl", 'rb'))
 
-    #Attribute Atoms
-    Attribution_Colums = ['Atom Attributions_std']
+    #attribute atoms
+    Attribution_Columns = ['Atom Attributions_std']
     color_coding =['#10384f']
     
     #model/descriptor agnostic
@@ -197,7 +194,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             
             data = get_SHAP_Morgan_attributions(data, 'Morgan_Fingerprint 2048Bit 2rad', 'smiles_std', model, explainer)
             data = normalize_atom_attributions(data, 'SHAP Attributions')
-            Attribution_Colums.append('SHAP Attributions_std')
+            Attribution_Columns.append('SHAP Attributions_std')
             color_coding.append('#9C0D38')
 
             print("SHAP Attribution done")
@@ -206,7 +203,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
     if "Morgan" in inspect.getsource(feature_function):
         data['RDKit Attributions'] = data['smiles_std'].apply(lambda s: RDKit_attributor(s, SimilarityMaps.GetMorganFingerprint, model))
         data = normalize_atom_attributions(data, 'RDKit Attributions')
-        Attribution_Colums.append('RDKit Attributions_std')
+        Attribution_Columns.append('RDKit Attributions_std')
         color_coding.append('#758ECD')
         print("RDKit Attribution done")
     if "RDK" in inspect.getsource(feature_function):
@@ -214,7 +211,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             return SimilarityMaps.GetRDKFingerprint(m, atomId=a, maxPath=7)
         data['RDKit Attributions'] = data['smiles_std'].apply(lambda s: RDKit_attributor(s, fp_func, model))
         data = normalize_atom_attributions(data, 'RDKit Attributions')
-        Attribution_Colums.append('RDKit Attributions_std')
+        Attribution_Columns.append('RDKit Attributions_std')
         color_coding.append('#758ECD')
         print("RDKit Attribution done")
 
@@ -227,28 +224,28 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
         os.makedirs(directory)
 
     for index, row in data.iterrows():
-        for attr_method in Attribution_Colums:
+        for attr_method in Attribution_Columns:
             output_dir = directory + '/'
             generate_heatmap(data, index, output_dir, 'smiles_std', attr_method, 'ID', task_type)
     print("Heatmaps have been created")
 
-    #Creat MMP database
-    colums_to_keep = Attribution_Colums + [Target_Column_Name]
-    data_MMPs = create_MMP_database(working_dir + "data.smi", working_dir ,data, colums_to_keep)
+    #create MMP database
+    columns_to_keep = Attribution_Columns + [Target_Column_Name]
+    data_MMPs = create_MMP_database(working_dir + "data.smi", working_dir ,data, columns_to_keep)
     data_MMPs.to_csv(working_dir + "MMPs_with_attributions.csv", index=False)
     print("MMPs created")
 
     #add predictions
     data_MMPs = add_predictions(data_MMPs, feature_function, model)
 
-    #Add indices
+    #add indices
     data_MMPs[["unmatched_atom_index_1", "unmatched_atom_index_2"]] = data_MMPs.apply(
     lambda row: pd.Series(get_unmatched_atom_indices_fragments(row["smiles_1"], row["smiles_2"], row["constant"])), axis=1)
 
-    #Add Plots   
+    #add Plots   
     if task_type == 'regression':
         if model_available is not None:
-            for attr_method, color in zip(Attribution_Colums, color_coding): 
+            for attr_method, color in zip(Attribution_Columns, color_coding): 
                 data_MMPs = plot_MMP_correlations(data_MMPs, attr_method, color, working_dir, Target_Column_Name)
                 data_MMPs = plot_const_histogram(data_MMPs, attr_method, color, working_dir)
 
@@ -257,7 +254,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
 
         train_set, test_set = split_MMPs_by_set(data_MMPs, test)
 
-        for attr_method, color in zip(Attribution_Colums, color_coding): 
+        for attr_method, color in zip(Attribution_Columns, color_coding): 
 
             print('For the training set:')
             train_set = plot_MMP_correlations(train_set, attr_method, color, working_dir, Target_Column_Name, header='Training Set')
@@ -267,7 +264,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             test_set = plot_MMP_correlations(test_set, attr_method, color, working_dir, Target_Column_Name, header='Test Set')
             test_set = plot_const_histogram(test_set, attr_method, color, working_dir, header='Test Set')
         
-        for attr_method, color in zip(Attribution_Colums, color_coding): 
+        for attr_method, color in zip(Attribution_Columns, color_coding): 
         
             columns = ['delta_sum_' + attr_method, 'delta_sum_fragment_contributions_' + attr_method]
             for col in columns:
@@ -283,11 +280,11 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
 
     #get MMP accuracy
     if model_available is not None:
-        for attr_method in Attribution_Colums:
+        for attr_method in Attribution_Columns:
             
             if task_type == 'classification':
                 #to get the sums also for the regression part
-                r2_whole, r2_fragment, data_MMPs = get_r2_and_summed_data_attributions(data_MMPs, 'predictions_1', 'predictions_2', attr_method + '_1', attr_method + '_2', attr_method, 'unmatched_atom_index_1' , 'unmatched_atom_index_2')
+                _, _, data_MMPs = get_r2_and_summed_data_attributions(data_MMPs, 'predictions_1', 'predictions_2', attr_method + '_1', attr_method + '_2', attr_method, 'unmatched_atom_index_1' , 'unmatched_atom_index_2')
             
             columns = ['delta_sum_' + attr_method, 'delta_sum_fragment_contributions_' + attr_method]
             for col in columns:

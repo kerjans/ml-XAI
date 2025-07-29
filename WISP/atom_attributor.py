@@ -53,11 +53,34 @@ class _Silencer:
         self.re.__exit__(exctype, excinst, exctb)
 
 def mutate_atoms(smiles, mutation_subset=None):
+    """
+    Generate single‐atom point mutations of a molecule by substituting each atom
+    in turn with elements from a specified set.
+
+    For each atom index in the input SMILES:
+      • The atom’s original symbol is recorded.
+      • Each symbol in `mutation_subset` (or the global ORGANIC_ATOM_SYMBOLS)—
+        except the atom’s current symbol—is tried as a replacement.
+      • The molecule is sanitized after the swap; if valid, the new SMILES is yielded.
+      • On failure, a tuple with replacement_symbol=None and new_smiles='' is yielded.
+
+    Parameters:
+        smiles (str): A SMILES string of the molecule to mutate.
+        mutation_subset (iterable of str, optional): Atom symbols to attempt as replacements.
+            Defaults to the global ORGANIC_ATOM_SYMBOLS.
+
+    Yields:
+        tuple:
+            (atom_idx (int),
+             original_symbol (str),
+             replacement_symbol (str or None),
+             new_smiles (str))
+    """
     global ORGANIC_ATOM_SYMBOLS
     if mutation_subset is None:
         mutation_subset = ORGANIC_ATOM_SYMBOLS
-    mol = Chem.MolFromSmiles(smiles, sanitize=False) # to keep the explicit hydrogens
-    Chem.SanitizeMol(mol)  # to keep the explicit hydrogens
+    mol = Chem.MolFromSmiles(smiles, sanitize=False) 
+    Chem.SanitizeMol(mol) # to keep the explicit hydrogens
     if mol is None or mol.GetNumAtoms() == 0:
         return mol # nothing to mutate
 
@@ -90,6 +113,17 @@ def mutate_atoms(smiles, mutation_subset=None):
 
 
 def predictor_on_smiles(smiles, featureMETHOD, model):
+    """
+    Compute a model prediction for a single molecule/mutation given its SMILES string.
+
+    Parameters:
+        smiles (str): A SMILES representation of the molecule to predict on.
+        feature_method (callable): A function that maps a SMILES string to feature array.
+        model: A fitted estimator with a .predict(X) method, where X is the output of get_features().
+
+    Returns:
+        np.ndarray: The prediction output (often a 1-element array) from model.predict().
+    """
     data_smiles = {'SMILES': [smiles]}
     df_smiles = pd.DataFrame(data_smiles)
     df_smiles['Feature'] = df_smiles['SMILES'].apply(featureMETHOD)
@@ -99,9 +133,28 @@ def predictor_on_smiles(smiles, featureMETHOD, model):
 
 
 def attribute_atoms(smiles: str, model, featureMETHOD) -> np.array:
+    """
+    Compute per-atom attribution scores by single-atom substitutions.
+
+    For each atom in the input SMILES:
+      1. Generate all valid single-atom replacements via `mutate_atoms()`.
+      2. Predict the original molecule’s output.
+      3. For each atom, mutate it in turn, predict the mutated molecules,
+         and compute the average Δprediction relative to the original.
+      4. Return a list of attribution scores, one per atom index.
+
+    Parameters:
+        smiles (str): SMILES string of the molecule.
+        model: A fitted estimator with `.predict(X)` and compatible with `predictor_on_smiles`.
+        feature_method (callable): Function mapping a SMILES to its feature vector(s).
+
+    Returns:
+        np.array: An array of attribution scores (floats), one per atom in the molecule.
+
+    """
     mutated_dict = {}
 
-    for atom_idx, old_sym, new_sym, mutated in mutate_atoms(smiles):
+    for atom_idx, _, _, mutated in mutate_atoms(smiles):
         if atom_idx not in mutated_dict:
             mutated_dict[atom_idx] = []
         if mutated:
@@ -120,7 +173,7 @@ def attribute_atoms(smiles: str, model, featureMETHOD) -> np.array:
             y_diff = y_org - prediction
             attributions.append(y_diff.mean())
 
-    mol = Chem.MolFromSmiles(smiles, sanitize=False) # to keep the explicit hydrogens
+    mol = Chem.MolFromSmiles(smiles, sanitize=False)
     Chem.SanitizeMol(mol)  # to keep the explicit hydrogens
     assert len(attributions) == mol.GetNumAtoms()
     return attributions

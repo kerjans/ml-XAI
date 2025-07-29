@@ -1,13 +1,17 @@
-import chemprop
 import random
+import numpy as np
 
 import pandas as pd
 import matplotlib.pyplot as plt
+
+import torch
 from lightning import pytorch as pl
+from lightning.pytorch import seed_everything
+from lightning.pytorch.callbacks import ModelCheckpoint
+
 from pathlib import Path
 
-from lightning.pytorch import seed_everything
-
+import chemprop
 from chemprop import data, featurizers, models, nn
 from chemprop.nn import metrics
 from chemprop.models import multi
@@ -15,17 +19,9 @@ from chemprop.models import multi
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-import pdb
-import numpy as np
-
-from lightning.pytorch.callbacks import ModelCheckpoint
-
-import torch
-
 import os
 from glob import glob
 
-#to not get the output
 import logging
 logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
 
@@ -35,9 +31,20 @@ torch.manual_seed(6)
 torch.use_deterministic_algorithms(True)
 
 class SklChemprop:
+    """
+    Wrapper around a Chemprop MPNN model for regression tasks
+    using PyTorch Lightning. Provides methods to train from a pandas DataFrame of
+    SMILES and targets, load the best checkpoint, and predict on new data.
 
+    Attributes:
+        problem_type (str): "regression" or "classification".
+        max_epochs (int): Maximum number of training epochs.
+        Smiles_Column_Name (str): Name of the SMILES column in the DataFrame.
+        Target_Column_Name (str): Name of the target column in the DataFrame.
+        working_dir (str): Directory where checkpoints and logs are stored.
+        mpnn (Chemprop model): The loaded or newly trained MPNN model.
+    """
     def __init__(self,problem_type:str,max_epochs:int,Smiles_Column_Name:str, Target_Column_Name:str, working_dir:str):
-        # TODO: Hyperparameters should be passed here
         self.problem_type = problem_type
         self.max_epochs = max_epochs
         self.Smiles_Column_Name = Smiles_Column_Name
@@ -48,11 +55,15 @@ class SklChemprop:
         self._load_latest_checkpoint()
 
     def _load_latest_checkpoint(self):
+        """
+        Search the `working_dir/checkpoints/` folder for the most recently modified
+        'best*.ckpt' file and load it into `self.mpnn`. If none exists, does nothing.
+        """
         checkpoint_dir = self.working_dir + 'checkpoints/'
-        if not os.path.exists(checkpoint_dir):#skipps loading if there is no checkpoint dir
+        if not os.path.exists(checkpoint_dir):#skips loading if there is no checkpoint dir
             return
         ckpt_files = glob(os.path.join(checkpoint_dir, 'best*.ckpt'))
-        if not ckpt_files:#skipps loading if there is no checkpoint file
+        if not ckpt_files:#skips loading if there is no checkpoint file
             return
         # Get most recent checkpoint and set as self model
         latest_ckpt = max(ckpt_files, key=os.path.getmtime)
@@ -66,10 +77,23 @@ class SklChemprop:
         return loader
 
     def fit(self,df_input:"pd.Dataframe"):
+        """
+        Train the MPNN on the given DataFrame.
+
+        Steps:
+          1. Reset index and split into train/validation (80/20).
+          2. Featurize molecules and normalize targets.
+          3. Instantiate the MPNN, set up a PyTorch Lightning Trainer with checkpointing.
+          4. Train for up to `self.max_epochs` epochs.
+          5. Reload the best checkpoint into `self.mpnn`.
+
+        Parameters:
+            df_input (pd.DataFrame): Contains SMILES and target columns.
+        """
         df_input.reset_index(inplace=True)
         num_workers = 0 # number of workers for dataloader. 0 means using main process for data loading
-        smiles_column = self.Smiles_Column_Name # name of the column containing SMILES strings
-        target_columns = [self.Target_Column_Name] # list of names of the columns containing targets
+        smiles_column = self.Smiles_Column_Name 
+        target_columns = [self.Target_Column_Name] 
         smis = df_input.loc[:, smiles_column].values
         ys = df_input.loc[:, target_columns].values
         
@@ -133,10 +157,17 @@ class SklChemprop:
         self._load_latest_checkpoint()
 
     
-    def predict(self, smiles):#df_input:"pd.Dataframe"
-        num_workers = 0 # number of workers for dataloader. 0 means using main process for data loading
-        #smiles_column = self.Smiles_Column_Name # name of the column containing SMILES strings
-        #smis = df_input.loc[:, smiles_column].values
+    def predict(self, smiles):
+        """
+        Predict target values for a batch of SMILES strings.
+
+        Parameters:
+            smiles (list of str or nested list): SMILES to predict on.
+
+        Returns:
+            np.ndarray: Concatenated array of predictions from the loaded MPNN.
+        """
+        num_workers = 0 
         smis = [smi for sublist in smiles for smi in sublist]
         
         all_data = [data.MoleculeDatapoint.from_smi(smi) for smi in smis]
@@ -160,20 +191,20 @@ class SklChemprop:
 
         return test_preds
     
-def get_features(data, CLOUMS):
+def get_features(data, CLOUMNS):
     """
     Preprocesses the features according to theyr type.
 
     Keyword arguments:
     -- data: Table where the features are stored.
-    -- CLOUMS: Colum where the feature is stored.
+    -- CLOUMNS: Column where the feature is stored.
 
     Returns:
     -- X: Preprocessed feature.
     """
     features = []
 
-    for i in CLOUMS:
+    for i in CLOUMNS:
         if type(data[i].values[0]) is np.ndarray:
             x = np.stack(data[i].values)
         else:
@@ -184,6 +215,39 @@ def get_features(data, CLOUMS):
     return X
     
 def train_GNN(train, Smiles_Column_Name, Target_Column_Name, working_dir):
+    """
+    Train a Chemprop graph‐neural network on a regression task and evaluate on the same split.
+
+    This function:
+      1. Sets a fixed random seed for reproducibility.
+      2. Instantiates SklChemprop with the given SMILES and target column names,
+         training for up to 50 epochs.
+      3. Fits the model on the `train` DataFrame.
+      4. Uses `get_features(train, [Smiles_Column_Name])` as input to predict on `train`.
+      5. Computes:
+         - r2: squared Pearson correlation between true and predicted values,
+         - R2: alternate R² via 1 − (σ_residual²/σ_total²),
+         - MAE: mean absolute error,
+         - rmse: root mean squared error.
+      6. Returns these four metrics.
+
+    Parameters:
+        train (pd.DataFrame):
+            DataFrame containing columns `Smiles_Column_Name` and `Target_Column_Name`.
+        Smiles_Column_Name (str):
+            Name of the column with SMILES strings in `train`.
+        Target_Column_Name (str):
+            Name of the numeric target column in `train`.
+        working_dir (str):
+            Directory where Chemprop checkpoints and logs will be written.
+
+    Returns:
+        tuple:
+            r2 (float): Squared Pearson correlation coefficient.
+            R2 (float): Coefficient of determination via MSE ratio.
+            MAE (float): Mean absolute error.
+            rmse (float): Root mean squared error.
+    """
     torch.manual_seed(6)
     model_GNN = SklChemprop(problem_type="regression", max_epochs=50, Smiles_Column_Name=Smiles_Column_Name, Target_Column_Name=Target_Column_Name, working_dir=working_dir)
     model_GNN.fit(train)
