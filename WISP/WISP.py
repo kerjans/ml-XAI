@@ -63,12 +63,12 @@ def normalize_atom_attributions(data, input_col):
         pd.DataFrame: The original DataFrame with a new column
                       `input_col + '_std'` holding the normalized arrays.
     """
-    output_col = input_col + '_std'
+    #output_col = input_col + '_std'
 
     attr = np.concatenate(data[input_col].values)
     std = np.nanstd(attr)
 
-    data[output_col] = data[input_col].apply(lambda x: np.array(x) / std)
+    data[input_col] = data[input_col].apply(lambda x: np.array(x) / std)
     
     return data
 
@@ -176,7 +176,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
     model = pickle.load(open(working_dir + "model.pkl", 'rb'))
 
     #attribute atoms
-    Attribution_Columns = ['Atom Attributions_std']
+    Attribution_Columns = ['Atom Attributions']
     color_coding =['#10384f']
     
     #model/descriptor agnostic
@@ -194,7 +194,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             
             data = get_SHAP_Morgan_attributions(data, 'Morgan_Fingerprint 2048Bit 2rad', 'smiles_std', model, explainer)
             data = normalize_atom_attributions(data, 'SHAP Attributions')
-            Attribution_Columns.append('SHAP Attributions_std')
+            Attribution_Columns.append('SHAP Attributions')
             color_coding.append('#9C0D38')
 
             print("SHAP Attribution done")
@@ -203,7 +203,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
     if "Morgan" in inspect.getsource(feature_function):
         data['RDKit Attributions'] = data['smiles_std'].apply(lambda s: RDKit_attributor(s, SimilarityMaps.GetMorganFingerprint, model))
         data = normalize_atom_attributions(data, 'RDKit Attributions')
-        Attribution_Columns.append('RDKit Attributions_std')
+        Attribution_Columns.append('RDKit Attributions')
         color_coding.append('#758ECD')
         print("RDKit Attribution done")
     if "RDK" in inspect.getsource(feature_function):
@@ -211,7 +211,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             return SimilarityMaps.GetRDKFingerprint(m, atomId=a, maxPath=7)
         data['RDKit Attributions'] = data['smiles_std'].apply(lambda s: RDKit_attributor(s, fp_func, model))
         data = normalize_atom_attributions(data, 'RDKit Attributions')
-        Attribution_Columns.append('RDKit Attributions_std')
+        Attribution_Columns.append('RDKit Attributions')
         color_coding.append('#758ECD')
         print("RDKit Attribution done")
 
