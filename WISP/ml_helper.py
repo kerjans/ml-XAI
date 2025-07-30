@@ -150,14 +150,14 @@ def hp_search_helper(model, df_train, target,feature):
     
     PARAM_GRID = {
     'SVC': {'model__C': [0.1, 1, 10, 100], 'model__kernel': ['rbf'], 'model__class_weight': ['balanced'], 'model__gamma': ['scale', 'auto', 1, 0.001, 0.01, 0.1]},
-    'RandomForestClassifier': {'n_estimators': [400,700,1000], 'class_weight': ['balanced'], 'min_samples_leaf': [2,3]},
+    'RandomForestClassifier': {'model__n_jobs':[6], 'n_estimators': [400,700,1000], 'class_weight': ['balanced'], 'min_samples_leaf': [2,3]},
     
     'MLPClassifier': {'model__hidden_layer_sizes': [(50,), (100,), (50, 50)], 'model__activation': ['relu', 'tanh'], 'model__solver': ['adam'], 'model__alpha': [0.0001, 0.001, 0.01], 'model__learning_rate': ['constant', 'adaptive'], 'model__max_iter': [200, 500]},
     'GradientBoostingClassifier': {'model__n_estimators': [100, 300, 500], 'model__learning_rate': [0.01, 0.05, 0.1], 'model__max_depth': [3, 5, 7], 'model__subsample': [0.6, 0.8, 1.0], 'model__min_samples_split': [2, 5, 10]},
     'GaussianProcessClassifier': {'model__n_restarts_optimizer': [0, 2, 5], 'model__max_iter_predict': [100, 200], 'model__multi_class': ['one_vs_rest'], 'model__warm_start': [True, False]},
 
     'SVR': {'model__C': [0.1, 1, 10, 100], 'model__kernel': ['rbf'],  'model__gamma': ['scale', 'auto', 1, 0.001, 0.01, 0.1]},
-    'RandomForestRegressor': {'model__n_estimators': [400,700,1000], 'model__max_depth':[30, 50], 'model__n_jobs':[1], 'model__random_state': [42]},
+    'RandomForestRegressor': {'model__n_estimators': [400,700,1000], 'model__max_depth':[30, 50], 'model__n_jobs':[6], 'model__random_state': [42]},
     
     'MLPRegressor': {'model__hidden_layer_sizes': [(50,), (100,), (50, 50)],'model__activation': ['relu', 'tanh'],'model__solver': ['adam'],'model__alpha': [0.0001, 0.001, 0.01],'model__learning_rate': ['constant', 'adaptive'],'model__max_iter': [200, 500], 'model__random_state': [42]},
     'BayesianRidge': {'model__alpha_1': [1e-7, 1e-6, 1e-5],'model__alpha_2': [1e-7, 1e-6, 1e-5],'model__lambda_1': [1e-7, 1e-6, 1e-5],'model__lambda_2': [1e-7, 1e-6, 1e-5]},
