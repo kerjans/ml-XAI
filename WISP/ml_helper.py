@@ -150,14 +150,14 @@ def hp_search_helper(model, df_train, target,feature):
     
     PARAM_GRID = {
     'SVC': {'model__C': [0.1, 1, 10, 100], 'model__kernel': ['rbf'], 'model__class_weight': ['balanced'], 'model__gamma': ['scale', 'auto', 1, 0.001, 0.01, 0.1]},
-    'RandomForestClassifier': {'n_estimators': [400,700,1000], 'class_weight': ['balanced'], 'min_samples_leaf': [2,3]},
+    'RandomForestClassifier': {'model__n_jobs':[6], 'n_estimators': [400,700,1000], 'class_weight': ['balanced'], 'min_samples_leaf': [2,3]},
     
     'MLPClassifier': {'model__hidden_layer_sizes': [(50,), (100,), (50, 50)], 'model__activation': ['relu', 'tanh'], 'model__solver': ['adam'], 'model__alpha': [0.0001, 0.001, 0.01], 'model__learning_rate': ['constant', 'adaptive'], 'model__max_iter': [200, 500]},
     'GradientBoostingClassifier': {'model__n_estimators': [100, 300, 500], 'model__learning_rate': [0.01, 0.05, 0.1], 'model__max_depth': [3, 5, 7], 'model__subsample': [0.6, 0.8, 1.0], 'model__min_samples_split': [2, 5, 10]},
     'GaussianProcessClassifier': {'model__n_restarts_optimizer': [0, 2, 5], 'model__max_iter_predict': [100, 200], 'model__multi_class': ['one_vs_rest'], 'model__warm_start': [True, False]},
 
     'SVR': {'model__C': [0.1, 1, 10, 100], 'model__kernel': ['rbf'],  'model__gamma': ['scale', 'auto', 1, 0.001, 0.01, 0.1]},
-    'RandomForestRegressor': {'model__n_estimators': [400,700,1000], 'model__max_depth':[30, 50], 'model__n_jobs':[1], 'model__random_state': [42]},
+    'RandomForestRegressor': {'model__n_estimators': [400,700,1000], 'model__max_depth':[30, 50], 'model__n_jobs':[6], 'model__random_state': [42]},
     
     'MLPRegressor': {'model__hidden_layer_sizes': [(50,), (100,), (50, 50)],'model__activation': ['relu', 'tanh'],'model__solver': ['adam'],'model__alpha': [0.0001, 0.001, 0.01],'model__learning_rate': ['constant', 'adaptive'],'model__max_iter': [200, 500], 'model__random_state': [42]},
     'BayesianRidge': {'model__alpha_1': [1e-7, 1e-6, 1e-5],'model__alpha_2': [1e-7, 1e-6, 1e-5],'model__lambda_1': [1e-7, 1e-6, 1e-5],'model__lambda_2': [1e-7, 1e-6, 1e-5]},
@@ -256,7 +256,7 @@ def split_data(data, Target_Column_Name):
     train = data.drop(test.index)
     return test, target_test, train
 
-def features_and_reg_model_types(data):
+def features_and_reg_model_types(data,fast_run=False):
     """
     Generate molecular fingerprint features and return regression model candidates.
 
@@ -278,11 +278,18 @@ def features_and_reg_model_types(data):
     data['MACCS_Fingerprint'] = data['smiles_std'].apply(get_MACCS_fingerprint)
     data['RDK_Fingerprint'] = data['smiles_std'].apply(get_RDK_fingerprint)
 
-    ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
+    if fast_run:
+        ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',]
+    else:
+        ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
             'RDK_Fingerprint',
             'MACCS_Fingerprint']
+    
         
-    model_types = [MLPRegressor(), 
+    if fast_run:
+        model_types = [RandomForestRegressor(),]
+    else:
+        model_types = [MLPRegressor(), 
             BayesianRidge(), 
             Lasso(), 
             GradientBoostingRegressor(), 
@@ -292,7 +299,7 @@ def features_and_reg_model_types(data):
             GaussianProcessRegressor(kernel=Matern())]
     return data, ALLfeatureCOLUMNS, model_types
 
-def features_and_class_model_types(data):
+def features_and_class_model_types(data,fast_run=False,):
     """
     Create fingerprint features and return classification model candidates.
 
@@ -311,15 +318,24 @@ def features_and_class_model_types(data):
     data['MACCS_Fingerprint'] = data['smiles_std'].apply(get_MACCS_fingerprint)
     data['RDK_Fingerprint'] = data['smiles_std'].apply(get_RDK_fingerprint)
 
-    ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
+    if fast_run:
+        ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',]
+    else:
+        ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
             'RDK_Fingerprint',
             'MACCS_Fingerprint']
         
-    model_types = [MLPClassifier(), 
+    if fast_run:
+        model_types = [
+            RandomForestClassifier(), 
+        ]
+    else:
+        model_types = [MLPClassifier(), 
             GradientBoostingClassifier(), 
             RandomForestClassifier(), 
             SVC(),
             GaussianProcessClassifier()]
+
     return data, ALLfeatureCOLUMNS, model_types
 
 def get_best_reg_model(model_types, ALLfeatureCOLUMNS, train, Target_Column_Name, working_dir, use_GNN):

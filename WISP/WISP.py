@@ -1,4 +1,5 @@
 import inspect
+import multiprocessing
 import os
 import sys
 import os
@@ -94,7 +95,7 @@ def suppress_output():
             sys.stdout = old_stdout
             sys.stderr = old_stderr
 
-def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Column_Name, model_available=None, use_GNN=True):
+def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Column_Name, model_available=None, use_GNN=True, fast_run=False,):
     """
     Executes the main WISP workflow: Load data, standardize SMILES, train or load a model, compute atom‐level attributions,
     generate heatmaps and matched‐molecular‐pair (MMP) analyses, then return the MMP DataFrame as well as the analyses plots.
@@ -110,6 +111,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             function name, which is the function that converts the input smiles to the 
             respective machine learning feature.
         use_GNN (bool): If True, include graph‐neural‐network models in the search.
+        fast_run (bool): If True, only try MorganFingerprints+RandomForestRegressor/Classifier
 
     Returns:
         pd.DataFrame: The final MMP DataFrame with predictions, attributions, plots, and metrics.
@@ -150,7 +152,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
         if task_type == 'regression':
 
             #calculate fingerprints as descriptors and set settings
-            data, ALLfeatureCOLUMNS, model_types = features_and_reg_model_types(data)
+            data, ALLfeatureCOLUMNS, model_types = features_and_reg_model_types(data,fast_run=fast_run)
 
             #test/train split
             test, target_test, train = split_data(data, Target_Column_Name)
@@ -163,7 +165,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
         if task_type == 'classification':
             
             #calculate fingerprints as descriptors and set settings
-            data, ALLfeatureCOLUMNS, model_types = features_and_class_model_types(data)
+            data, ALLfeatureCOLUMNS, model_types = features_and_class_model_types(data,fast_run=fast_run)
 
             #test/train split
             test, target_test, train = split_data(data, Target_Column_Name)
@@ -180,40 +182,46 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
     color_coding =['#10384f']
     
     #model/descriptor agnostic
-    data['Atom Attributions'] = data['smiles_std'].apply(lambda s: attribute_atoms(s, model, feature_function))
+    if fast_run:
+        with multiprocessing.Pool(processes=6) as pool:
+            data['Atom Attributions'] = pool.starmap(attribute_atoms,[(s,model,feature_function) for s in data["smiles_std"].tolist()],)
+    else:
+        data['Atom Attributions'] = data['smiles_std'].apply(lambda s: attribute_atoms(s, model, feature_function))
     data = normalize_atom_attributions(data, 'Atom Attributions')
 
     print("Atom Attribution done")
     
-    #SHAP explainer
-    if "Morgan" in inspect.getsource(feature_function):
-        if task_type == 'regression':
-            data['Morgan_Fingerprint 2048Bit 2rad'] = data['smiles_std'].apply(feature_function)
-            
-            explainer = pick_shap_explainer(model, data)
-            
-            data = get_SHAP_Morgan_attributions(data, 'Morgan_Fingerprint 2048Bit 2rad', 'smiles_std', model, explainer)
-            data = normalize_atom_attributions(data, 'SHAP Attributions')
-            Attribution_Columns.append('SHAP Attributions')
-            color_coding.append('#9C0D38')
+    if not fast_run:
+        #SHAP explainer
+        if "Morgan" in inspect.getsource(feature_function):
+            if task_type == 'regression':
+                data['Morgan_Fingerprint 2048Bit 2rad'] = data['smiles_std'].apply(feature_function)
+                
+                explainer = pick_shap_explainer(model, data)
+                
+                data = get_SHAP_Morgan_attributions(data, 'Morgan_Fingerprint 2048Bit 2rad', 'smiles_std', model, explainer)
+                data = normalize_atom_attributions(data, 'SHAP Attributions')
+                Attribution_Columns.append('SHAP Attributions')
+                color_coding.append('#9C0D38')
 
-            print("SHAP Attribution done")
+                print("SHAP Attribution done")
     
-    #RDKit
-    if "Morgan" in inspect.getsource(feature_function):
-        data['RDKit Attributions'] = data['smiles_std'].apply(lambda s: RDKit_attributor(s, SimilarityMaps.GetMorganFingerprint, model))
-        data = normalize_atom_attributions(data, 'RDKit Attributions')
-        Attribution_Columns.append('RDKit Attributions')
-        color_coding.append('#758ECD')
-        print("RDKit Attribution done")
-    if "RDK" in inspect.getsource(feature_function):
-        def fp_func(m, a):
-            return SimilarityMaps.GetRDKFingerprint(m, atomId=a, maxPath=7)
-        data['RDKit Attributions'] = data['smiles_std'].apply(lambda s: RDKit_attributor(s, fp_func, model))
-        data = normalize_atom_attributions(data, 'RDKit Attributions')
-        Attribution_Columns.append('RDKit Attributions')
-        color_coding.append('#758ECD')
-        print("RDKit Attribution done")
+        #RDKit
+        if "Morgan" in inspect.getsource(feature_function):
+            data['RDKit Attributions'] = data['smiles_std'].apply(lambda s: RDKit_attributor(s, SimilarityMaps.GetMorganFingerprint, model))
+            data = normalize_atom_attributions(data, 'RDKit Attributions')
+            Attribution_Columns.append('RDKit Attributions')
+            color_coding.append('#758ECD')
+            print("RDKit Attribution done")
+
+        if "RDK" in inspect.getsource(feature_function):
+            def fp_func(m, a):
+                return SimilarityMaps.GetRDKFingerprint(m, atomId=a, maxPath=7)
+            data['RDKit Attributions'] = data['smiles_std'].apply(lambda s: RDKit_attributor(s, fp_func, model))
+            data = normalize_atom_attributions(data, 'RDKit Attributions')
+            Attribution_Columns.append('RDKit Attributions')
+            color_coding.append('#758ECD')
+            print("RDKit Attribution done")
 
     #save attribution data
     data.to_csv(working_dir + "Attribution_Data.csv", index=False)

@@ -256,7 +256,7 @@ const refreshFirstPage = function () {
     explain_pred_img.classList.add("zoomable");
 
     // const col = "PREDvsCONTRIBUTIONSfragmentAtom Attributions_Training_Set.png";
-    const col = "PREDvsCONTRIBUTIONSfragmentAtom Attributions_std_Training_Set.png";
+    const col = "PREDvsCONTRIBUTIONSfragmentAtom Attributions_Training_Set.png";
 
     explain_pred_img.src = "data:image/png;base64," + IMAGES[col];
     styleImage(explain_pred_img);
@@ -278,7 +278,7 @@ const refreshFirstPage = function () {
     explain_exp_img.classList.add("zoomable");
 
     // const col2 = "EXPvsCONTRIBUTIONSwholeAtom Attributions_Test_Set.png";
-    const col2 = "EXPvsCONTRIBUTIONSwholeAtom Attributions_std_Test_Set.png";
+    const col2 = "EXPvsCONTRIBUTIONSwholeAtom Attributions_Test_Set.png";
     explain_exp_img.src = "data:image/png;base64," + IMAGES[col2];
     styleImage(explain_exp_img);
 
