@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centered Dialog Box</title>
+    <style>
+        body {
+            font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .small-print {
+            font-size: 50% !important;
+        }
+
+        .dialog-box {
+            width: 400px;
+            padding: 20px;
+            background-color: #007BFF;
+            /* Blue background */
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .dialog-box h1 {
+            margin: 0 0 10px;
+            font-size: 24px;
+        }
+
+        .dialog-box p {
+            font-size: 16px;
+            margin: 0 0 20px;
+        }
+
+        .dialog-box button {
+            padding: 10px 15px;
+            background-color: #0056b3;
+            /* Darker blue for button */
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .dialog-box button:hover {
+            background-color: #004494;
+            /* Even darker blue on hover */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dialog-box">
+        {{MESSAGE}}
+    </div>
+</body>
+
+</html>

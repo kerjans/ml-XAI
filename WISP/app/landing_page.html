@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centered SVG</title>
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            /* Center horizontally */
+            align-items: center;
+            /* Center vertically */
+            background-color: black;
+            /* Optional background color */
+        }
+
+        svg {
+            max-width: 100%;
+            /* Responsive */
+            max-height: 100%;
+            /* Responsive */
+            width: 99vw;
+            /* Take full viewport width */
+            height: auto;
+            /* Maintain aspect ratio */
+        }
+
+        svg #rect24318:hover {
+            fill: rgb(146, 135, 252) !important;
+            cursor: pointer;
+        }
+    </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // click on Try it out should redirect to wisp page:
+        // rect24318
+        // text25347
+
+        window.addEventListener('load', function () {
+            d3.selectAll("svg text")
+                .style("pointer-events", "none");
+
+            const wisp_ids = [
+                "#rect_WISP_live",
+                "#text25347",
+                "#rect24318",
+                "#tspan47541"
+            ];
+            wisp_ids.forEach(
+                function (elt_id) {
+                    d3.selectAll("svg").selectAll(elt_id).on("click", function () {
+                        alert("wisp");
+                        window.location.replace('/wisp');
+                    }
+                    );
+                });
+
+            const documentation_ids = [
+                "#rect_Documentation",
+            ];
+            documentation_ids.forEach(
+                function (elt_id) {
+                    d3.selectAll("svg").selectAll(elt_id).on("click", function () {
+                        alert("docu");
+                        window.location.replace('/documentation');
+                    }
+                    );
+                });
+
+            const about_ids = [
+                "#rect_About",
+            ];
+            about_ids.forEach(
+                function (elt_id) {
+                    d3.selectAll("svg").selectAll(elt_id).on("click", function () {
+                        window.location.replace('/about');
+                    }
+                    );
+                });
+        }
+        );
+
+
+    </script>
+</head>
+
+<body>
+    {SVG}
+</body>
+
+</html>

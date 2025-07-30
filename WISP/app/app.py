@@ -76,6 +76,7 @@ def log_function_call(func):
     return wrapper
 
 
+HERE = Path(__file__).parent 
 
 # The BaseHandler is the blueprint for a Request Handler
 class BaseHandler(tornado.web.RequestHandler):
@@ -105,12 +106,26 @@ class LoginHandler(tornado.web.RequestHandler):
         hex_data = img_fle.read_bytes()
         img64 = base64.b64encode(hex_data).decode("utf-8")
         src = "data:image/png;base64," + img64
-        self.write('<html><body><form action="/login" method="post">'
-                    "<p>Please complete the captcha (may take several seconds)</p>"
-                    f'<img src="{src}"></img>'
-                   'Captcha: <input type="text" name="name">'
-                   '<input type="submit" value="Sign in">'
-                   '</form></body></html>')
+
+
+        templ = (HERE / "dialog_box.html").read_text()
+        dlg = f"""<form action="/login" method="post">
+                    <p>Please complete the captcha (may take several seconds)</p>
+                    <img src="{src}"></img>
+                   <br>
+                   Captcha: <input type="text" name="name">
+                   <input type="submit" value="Sign in">
+                   <br>
+                   <br>
+                   <p class="small-print">
+                   By signing in you agree to our use of cookies and client-side data storage
+                   which is only used for technical reasons (login handling, keeping track of past jobs). 
+                   <br>
+                   Also, you agree to our <a href="/terms_of_use">terms of use</a>.
+                   </p>
+                   </form>
+                   """
+        self.write(templ.replace("{{MESSAGE}}",dlg))
         img_fle.unlink()
 
     def post(self):
@@ -118,14 +133,40 @@ class LoginHandler(tornado.web.RequestHandler):
         if trial in self.IMAGE_CAPTCHAS:
             print("LOGIN SUCCESS")
             self.set_signed_cookie("user", str(uuid.uuid4()))
-            self.redirect("/")
+            self.redirect("/wisp")
         else:
             print("LOGIN FAILURE")
             self.redirect("/login")
 
+TERMS_OF_USE = HERE / "terms_of_use.txt"
+class TermsOfUseHandler(BaseHandler):
+    @log_function_call
+    def read(self):
+        terms = TERMS_OF_USE.read_text()
+        page = f"<html><body><pre>{terms}</pre></body></html>"
+        return page
 
-# The MainHandler displays the website
-SITE = Path(__file__).parent / "site.html"
+    @tornado.web.authenticated
+    @log_function_call
+    def get(self):
+        self.write(self.read())
+
+# The LandingPageHandler displays the initial landing web page
+LANDING_PAGE = HERE / "landing_page.svg"
+class LandingPageHandler(BaseHandler):
+    @log_function_call
+    def read(self):
+        temp = (HERE / "landing_page.html").read_text()
+        svg = (HERE / "landing_page.svg").read_text()
+        return temp.replace("{SVG}",svg)
+
+    @tornado.web.authenticated
+    @log_function_call
+    def get(self):
+        self.write(self.read())
+
+# The MainHandler displays the wisp web app
+SITE = HERE / "site.html"
 class MainHandler(BaseHandler):
     @log_function_call
     def read(self):
@@ -483,13 +524,15 @@ class JobSubmissionHandler(BaseHandler):
 async def main():
     application = tornado.web.Application(
         [
-            (r"/", MainHandler),
+            (r"/", LandingPageHandler),
+            (r"/terms_of_use", TermsOfUseHandler),
             (r"/JobSubmission", JobSubmissionHandler),
             (r"/JobStatus", JobStatusHandler),
             (r"/GuessColumnsHandler", GuessColumnsHandler),
             (r"/HeatMaps", HeatMaps),
             (r"/WispOverviewPage", WispOverviewPage),
             (r"/MMPOverview", MMPOverview),
+            (r"/wisp", MainHandler),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
             (r"/login", LoginHandler),
         ],
