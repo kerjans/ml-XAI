@@ -135,7 +135,7 @@ def get_SHAP_Morgan_attributions(data, feature_column, smiles_column, model, exp
 
     return data
 
-def pick_shap_explainer(model):
+def pick_shap_explainer(model, data):
     """
     Choose and construct a SHAP explainer appropriate for the fitted model in a Pipeline.
 

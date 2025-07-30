@@ -190,7 +190,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
         if task_type == 'regression':
             data['Morgan_Fingerprint 2048Bit 2rad'] = data['smiles_std'].apply(feature_function)
             
-            explainer = pick_shap_explainer(model)
+            explainer = pick_shap_explainer(model, data)
             
             data = get_SHAP_Morgan_attributions(data, 'Morgan_Fingerprint 2048Bit 2rad', 'smiles_std', model, explainer)
             data = normalize_atom_attributions(data, 'SHAP Attributions')
