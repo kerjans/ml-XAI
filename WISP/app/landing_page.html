@@ -34,6 +34,24 @@
             fill: rgb(146, 135, 252) !important;
             cursor: pointer;
         }
+
+        svg #text29554:hover * {
+            fill: rgb(146, 135, 252) !important;
+            color: rgb(146, 135, 252) !important;
+            cursor: pointer;
+        }
+
+        svg #text29411:hover * {
+            fill: rgb(146, 135, 252) !important;
+            color: rgb(146, 135, 252) !important;
+            cursor: pointer;
+        }
+
+        svg #text29145:hover * {
+            fill: rgb(146, 135, 252) !important;
+            color: rgb(146, 135, 252) !important;
+            cursor: pointer;
+        }
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script>
@@ -41,7 +59,36 @@
         // rect24318
         // text25347
 
+        function loadSVG() {
+            let svgFile;
+
+            // Check if the device is a mobile phone (portrait)
+            if (window.matchMedia("(max-width: 767px)").matches) {
+                // Load mobile design
+                d3.selectAll("svg").style("display", "none");
+                d3.selectAll("svg").filter((d, i) => i === 1).style("display", "block");
+            }
+            // Check if the device is a tablet (landscape)
+            else if (window.matchMedia("(min-width: 768px) and (max-width: 1024px)").matches) {
+                // Load tablet design
+                d3.selectAll("svg").style("display", "none");
+                d3.selectAll("svg").filter((d, i) => i === 0).style("display", "block");
+            } else {
+                // Load default design for larger screens
+                // (same as tablet design)
+                d3.selectAll("svg").style("display", "none");
+                d3.selectAll("svg").filter((d, i) => i === 0).style("display", "block");
+            }
+        }
+
+
+        // Optionally, you can also listen for window resize events to reload the SVG if the size changes
+        window.addEventListener('resize', loadSVG);
+
         window.addEventListener('load', function () {
+
+            loadSVG();
+
             d3.selectAll("svg text")
                 .style("pointer-events", "none");
 
@@ -49,12 +96,12 @@
                 "#rect_WISP_live",
                 "#text25347",
                 "#rect24318",
-                "#tspan47541"
+                "#tspan47541",
+                "#text29145"
             ];
             wisp_ids.forEach(
                 function (elt_id) {
                     d3.selectAll("svg").selectAll(elt_id).on("click", function () {
-                        alert("wisp");
                         window.location.replace('/wisp');
                     }
                     );
@@ -62,11 +109,11 @@
 
             const documentation_ids = [
                 "#rect_Documentation",
+                "#text29411"
             ];
             documentation_ids.forEach(
                 function (elt_id) {
                     d3.selectAll("svg").selectAll(elt_id).on("click", function () {
-                        alert("docu");
                         window.location.replace('/documentation');
                     }
                     );
@@ -74,6 +121,7 @@
 
             const about_ids = [
                 "#rect_About",
+                "#text29554"
             ];
             about_ids.forEach(
                 function (elt_id) {

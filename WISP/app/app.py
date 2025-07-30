@@ -158,9 +158,9 @@ class LandingPageHandler(BaseHandler):
     def read(self):
         temp = (HERE / "landing_page.html").read_text()
         svg = (HERE / "landing_page.svg").read_text()
-        return temp.replace("{SVG}",svg)
+        svg_mobile = (HERE / "landing_page_mobile.svg").read_text()
+        return temp.replace("{SVG}","\n".join([svg,svg_mobile,]))
 
-    @tornado.web.authenticated
     @log_function_call
     def get(self):
         self.write(self.read())
