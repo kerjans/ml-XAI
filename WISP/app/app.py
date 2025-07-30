@@ -303,6 +303,8 @@ class HeatMaps(BaseHandler):
         print("req:",req)
 
         job_id = req["job_id"]
+        page_size = req["page_size"]
+        current_page = req["current_page"]
 
         here = Path(__file__).parent
         working_dir = here / "working_dir" / f"{job_id}"
@@ -311,9 +313,13 @@ class HeatMaps(BaseHandler):
         meta_fle = working_dir / "metadata.json"
         meta_df = json.loads(meta_fle.read_text())
 
+        n_pages = 0
         heat_maps = []
         if heat_maps_dir.exists():
-            for png_fle in heat_maps_dir.glob("*.png"):
+            fles = sorted(heat_maps_dir.glob("*.png"))
+            legend_fles = [fle for fle in fles if "legend" in fle.name.lower()]
+            n_entries = len(fles) - len(legend_fles)  
+            for png_fle in fles[page_size*current_page:page_size*(current_page + 1)]+legend_fles:
                 hex_data = png_fle.read_bytes()
                 img64 = base64.b64encode(hex_data).decode("utf-8")
 
@@ -326,6 +332,7 @@ class HeatMaps(BaseHandler):
             {
                 "legend": legend,
                 "heatmaps": heat_maps,
+                "n_entries": n_entries,
                 "status": "success",
             }
         )

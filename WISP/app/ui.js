@@ -140,9 +140,10 @@ const submitJob = function () {
     });
 };
 
+CURRENT_JOB_ID = 0;
 MMP_OVERVIEW_DATA = [];
 const retrieveResults = function (job_id) {
-
+    CURRENT_JOB_ID = job_id;
     fetch("WispOverviewPage", {
 
         method: "POST",
@@ -172,34 +173,6 @@ const retrieveResults = function (job_id) {
         }
     }).then(
 
-        fetch("HeatMaps", {
-
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                "job_id": job_id
-            })
-        }).then(res => res.json()).then(res => {
-            console.log("Request complete! response:", res);
-            const status = res["status"];
-
-            if (status == "success") {
-
-                //IMAGES = res["images"];
-                MOLECULE_IMAGES = res["heatmaps"];
-                LEGEND_IMAGE = res["legend"];
-
-                //refreshFirstPage();
-                refreshSecondPage();
-            }
-
-            else {
-                alert("failure could not parse input!");
-            }
-        }
-        )
     ).then(
         fetch("MMPOverview", {
             method: "POST",
@@ -342,10 +315,48 @@ const refreshFirstPage = function () {
 PAGE_SIZE = 16
 COL_SIZE = 4
 CURRENT_PAGE = 0;
+N_PAGES = 0;
 MOLECULE_IMAGES = [];
 LEGEND_IMAGE = null;
 
+
 const refreshSecondPage = function () {
+    const job_id = CURRENT_JOB_ID;
+
+    fetch("HeatMaps", {
+
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "job_id": job_id,
+            "current_page": CURRENT_PAGE,
+            "page_size": PAGE_SIZE
+        })
+    }).then(res => res.json()).then(res => {
+        console.log("Request complete! response:", res);
+        const status = res["status"];
+
+        if (status == "success") {
+
+            //IMAGES = res["images"];
+            MOLECULE_IMAGES = res["heatmaps"];
+            LEGEND_IMAGE = res["legend"];
+            N_PAGES = Math.ceil(res["n_entries"] / PAGE_SIZE);
+
+            //refreshFirstPage();
+            refreshSecondPageElements();
+        }
+
+        else {
+            alert("failure could not parse input!");
+        }
+    }
+    );
+}
+
+const refreshSecondPageElements = function () {
     const cp = document.getElementById("result-div-2");
     cp.innerHTML = "";
     const startP = CURRENT_PAGE * PAGE_SIZE;
@@ -354,7 +365,6 @@ const refreshSecondPage = function () {
 
     const but_div = document.createElement("div");
     const but_left = document.createElement("button");
-    const N_PAGES = Math.ceil(MOLECULE_IMAGES.length / PAGE_SIZE);
     but_left.id = "left-button";
     but_left.innerText = "<";
     const but_right = document.createElement("button");
@@ -397,7 +407,7 @@ const refreshSecondPage = function () {
 
     elt_ul.classList.add("gallery");
     for (var q = 0; q < PAGE_SIZE; q++) {
-        const image = MOLECULE_IMAGES[q + startP];
+        const image = MOLECULE_IMAGES[q];
         const imgElement = document.createElement('img');
         //cp.innerHTML += `<img id="pngImage" alt="Base64 Image" />`;
         //document.getElementById("pngImage").src = "data:image/png;base64," + image;
@@ -455,6 +465,9 @@ window.onload = () => {
                 const other_elt = document.getElementById(value);
                 if (key === clicked_on) {
                     other_elt.style.display = "block";
+                    if (key == "Atom Contributions") {
+                        refreshSecondPage();
+                    }
                 } else {
                     other_elt.style.display = "none";
                 }
