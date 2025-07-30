@@ -118,14 +118,28 @@ class LoginHandler(tornado.web.RequestHandler):
         if trial in self.IMAGE_CAPTCHAS:
             print("LOGIN SUCCESS")
             self.set_signed_cookie("user", str(uuid.uuid4()))
-            self.redirect("/")
+            self.redirect("/wisp")
         else:
             print("LOGIN FAILURE")
             self.redirect("/login")
 
+# The LandingPageHandler displays the initial landing web page
+HERE = Path(__file__).parent 
+LANDING_PAGE = HERE / "landing_page.svg"
+class LandingPageHandler(BaseHandler):
+    @log_function_call
+    def read(self):
+        temp = (HERE / "landing_page.html").read_text()
+        svg = (HERE / "landing_page.svg").read_text()
+        return temp.replace("{SVG}",svg)
 
-# The MainHandler displays the website
-SITE = Path(__file__).parent / "site.html"
+    @tornado.web.authenticated
+    @log_function_call
+    def get(self):
+        self.write(self.read())
+
+# The MainHandler displays the wisp web app
+SITE = HERE / "site.html"
 class MainHandler(BaseHandler):
     @log_function_call
     def read(self):
@@ -483,13 +497,14 @@ class JobSubmissionHandler(BaseHandler):
 async def main():
     application = tornado.web.Application(
         [
-            (r"/", MainHandler),
+            (r"/", LandingPageHandler),
             (r"/JobSubmission", JobSubmissionHandler),
             (r"/JobStatus", JobStatusHandler),
             (r"/GuessColumnsHandler", GuessColumnsHandler),
             (r"/HeatMaps", HeatMaps),
             (r"/WispOverviewPage", WispOverviewPage),
             (r"/MMPOverview", MMPOverview),
+            (r"/wisp", MainHandler),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
             (r"/login", LoginHandler),
         ],
