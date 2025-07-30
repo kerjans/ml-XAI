@@ -256,7 +256,7 @@ def split_data(data, Target_Column_Name):
     train = data.drop(test.index)
     return test, target_test, train
 
-def features_and_reg_model_types(data):
+def features_and_reg_model_types(data,fast_run=False):
     """
     Generate molecular fingerprint features and return regression model candidates.
 
@@ -278,11 +278,18 @@ def features_and_reg_model_types(data):
     data['MACCS_Fingerprint'] = data['smiles_std'].apply(get_MACCS_fingerprint)
     data['RDK_Fingerprint'] = data['smiles_std'].apply(get_RDK_fingerprint)
 
-    ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
+    if fast_run:
+        ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',]
+    else:
+        ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
             'RDK_Fingerprint',
             'MACCS_Fingerprint']
+    
         
-    model_types = [MLPRegressor(), 
+    if fast_run:
+        model_types = [RandomForestRegressor(),]
+    else:
+        model_types = [MLPRegressor(), 
             BayesianRidge(), 
             Lasso(), 
             GradientBoostingRegressor(), 
@@ -292,7 +299,7 @@ def features_and_reg_model_types(data):
             GaussianProcessRegressor(kernel=Matern())]
     return data, ALLfeatureCOLUMNS, model_types
 
-def features_and_class_model_types(data):
+def features_and_class_model_types(data,fast_run=False,):
     """
     Create fingerprint features and return classification model candidates.
 
@@ -311,15 +318,24 @@ def features_and_class_model_types(data):
     data['MACCS_Fingerprint'] = data['smiles_std'].apply(get_MACCS_fingerprint)
     data['RDK_Fingerprint'] = data['smiles_std'].apply(get_RDK_fingerprint)
 
-    ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
+    if fast_run:
+        ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',]
+    else:
+        ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
             'RDK_Fingerprint',
             'MACCS_Fingerprint']
         
-    model_types = [MLPClassifier(), 
+    if fast_run:
+        model_types = [
+            RandomForestClassifier(), 
+        ]
+    else:
+        model_types = [MLPClassifier(), 
             GradientBoostingClassifier(), 
             RandomForestClassifier(), 
             SVC(),
             GaussianProcessClassifier()]
+
     return data, ALLfeatureCOLUMNS, model_types
 
 def get_best_reg_model(model_types, ALLfeatureCOLUMNS, train, Target_Column_Name, working_dir, use_GNN):

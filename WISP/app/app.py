@@ -146,7 +146,6 @@ class TermsOfUseHandler(BaseHandler):
         page = f"<html><body><pre>{terms}</pre></body></html>"
         return page
 
-    @tornado.web.authenticated
     @log_function_call
     def get(self):
         self.write(self.read())
@@ -396,11 +395,14 @@ class GuessColumnsHandler(BaseHandler):
         self.write(resp)
 
 
-from WISP.WISP import WISP # :o
+from WISP import WISP # :o
+from WISP import plotting_helper
 def run_wisp(args,metafle):
     print("START","run_wisp")
+    WISP.DISPLAY_PLOTS = False
+    plotting_helper.DISPLAY_PLOTS = False
     #time.sleep(20)
-    WISP(**args)
+    WISP.WISP(**args)
     print("END","run_wisp")
     metadat = json.loads(metafle.read_text())
     metadat["status"] = "done"
@@ -499,6 +501,7 @@ class JobSubmissionHandler(BaseHandler):
                             "Smiles_Column_Name":smiles_col,
                             "Target_Column_Name":target_col,
                             "use_GNN":False,
+                            "fast_run":True,
                             },  metafle
                     )
 
