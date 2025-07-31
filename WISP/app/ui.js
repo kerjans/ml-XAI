@@ -612,11 +612,45 @@ const renderMMPOverview = function (data) {
             .attr("class", "group-label")
             .text(g.MMP_rule);
 
+        function minDistance(value, array) {
+            return array.reduce((minDist, current) => {
+                const dist = Math.abs(value - current);
+                return Math.min(minDist, dist);
+            }, Infinity);
+        }
+
+        const jitter_with_memo_and_span = function (val, memo, span_sub, span_add) {
+            const jit_min = -span_sub;
+            const jit_max = +span_add;
+            const thresh = 5;
+            const cur_dist = minDistance(val, memo);
+
+            if (cur_dist < thresh) {
+                const jit_amnt = Math.random() * (jit_max - jit_min) + jit_min;
+                const jittered_val = val + jit_amnt;
+                memo.push(jittered_val);
+                return jittered_val;
+            } else {
+                memo.push(val);
+                return val;
+            }
+        };
+
+        var _jitterx_memo = [];
+        var _jittery_memo = [];
+        const jitterx = function (val) {
+            return jitter_with_memo_and_span(val, _jitterx_memo, 10, 10);
+        }
+        const jittery = function (val) {
+            return jitter_with_memo_and_span(val, _jittery_memo, 10, 0);
+        }
+
+
         // Scatterplot the single datapoints
         g.values.forEach((value, i) => {
             svg.append("circle")
-                .attr("cx", x(value))
-                .attr("cy", y(g.MMP_rule) + y.bandwidth() / 2) // vertically center
+                .attr("cx", jitterx(x(value)))
+                .attr("cy", jittery(y(g.MMP_rule)) + y.bandwidth() / 2) // vertically center
                 .attr("r", 3)
                 .attr("fill", "black")
                 .attr("opacity", 0.6)
