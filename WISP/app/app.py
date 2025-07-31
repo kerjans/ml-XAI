@@ -209,8 +209,8 @@ def resilient_read_target(df):
         return df["target"].tolist()
     else:
         smi_cols = [col for col in df.columns if 'smiles' in col.lower()]
-        target_cols = [col for col in df.columns if col not in smi_cols]
-        if len(smi_cols) == 1 and len(target_cols) == 1:
+        target_cols = [col for col in df.columns if col not in smi_cols and "float" in str(col.dtype) or "int" in str(col.dtype)]
+        if len(target_cols) >= 1:
             return df[target_cols[0]].tolist()
 
     return None
@@ -465,8 +465,7 @@ class JobSubmissionHandler(BaseHandler):
 
             if df is not None:
                 smiles = resilient_read_smiles(df)
-                #target = resilient_read_target(df)
-                target = df["measured log solubility in mols per litre"].tolist()
+                target = resilient_read_target(df)
                 if target is None or (smiles and len(target) != len(smiles)):
                     target = ["N/A" for _ in smiles]
                     
