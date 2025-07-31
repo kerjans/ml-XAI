@@ -120,7 +120,9 @@ const submitJob = function () {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            "csv": CURRENT_DATA
+            "csv": CURRENT_DATA,
+            "smiles_col": document.getElementById("smiles-column").value,
+            "target_col": document.getElementById("target-column").value
         })
 
     }).then(res => res.json()).then(res => {

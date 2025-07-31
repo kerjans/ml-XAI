@@ -188,34 +188,6 @@ def resilient_read_csv(csv,nrows=None,):
             return pd.read_csv(csv,sep=";",nrows=nrows)
     return None
 
-def resilient_read_smiles(df):
-    if "smiles" in df.columns:
-        return df["smiles"].tolist()
-    elif "SMILES" in df.columns:
-        return df["SMILES"].tolist()
-    else:
-        smi_cols = [col for col in df.columns if 'smiles' in col.lower()]
-        if len(smi_cols) == 1:
-            return df[smi_cols[0]].tolist()
-    
-    return []
-
-def resilient_read_target(df):
-    if "y" in df.columns:
-        return df["y"].tolist()
-    elif "ground_truth" in df.columns:
-        return df["ground_truth"].tolist()
-    elif "target" in df.columns:
-        return df["target"].tolist()
-    else:
-        smi_cols = [col for col in df.columns if 'smiles' in col.lower()]
-        target_cols = [col for col in df.columns if col not in smi_cols and "float" in str(col.dtype) or "int" in str(col.dtype)]
-        if len(target_cols) >= 1:
-            return df[target_cols[0]].tolist()
-
-    return None
-
-
 
 from rdkit import Chem
 from rdkit.Chem import Draw
@@ -386,7 +358,7 @@ class GuessColumnsHandler(BaseHandler):
                 if "smi" in col.lower():
                     smiles_col = col
                 
-                if "float" in str(df[col].dtype):
+                if "float" in str(df[col].dtype) or "int" in str(df[col].dtype):
                     target_col = col
 
         except:
@@ -464,19 +436,16 @@ class JobSubmissionHandler(BaseHandler):
             df = resilient_read_csv(csv)
 
             if df is not None:
-                smiles = resilient_read_smiles(df)
-                target = resilient_read_target(df)
-                if target is None or (smiles and len(target) != len(smiles)):
-                    target = ["N/A" for _ in smiles]
-                    
+                smiles_col = req["smiles_col"]
+                target_col = req["target_col"]
+                smiles = df[smiles_col].tolist()
+                target = df[target_col].tolist()
 
                 df_new = pd.DataFrame(
                     {"smiles": smiles, "target": target,
                      "ID": [str(i) for i in range(len(smiles))]}
                     )
                 id_col = "ID"
-                smiles_col = "smiles"
-                target_col = "target"
 
                 here = Path(__file__).parent
 
@@ -495,21 +464,25 @@ class JobSubmissionHandler(BaseHandler):
                 input_fle = working_dir / f"input_{job_id}.csv"
                 df_new.to_csv(input_fle)
 
-                if True:
+                args = {
+                    # fix for internal wisp processing problems
+                    "working_dir":str(working_dir)+str(os.path.sep), 
+                    "input_dir":str(input_fle),
+                    "ID_Column_Name":id_col,
+                    "Smiles_Column_Name":"smiles",
+                    "Target_Column_Name":"target",
+                    "use_GNN":False,
+                    "fast_run":True,
+                    }
+                PROCESS_PARALLEL = False
+                if PROCESS_PARALLEL:
                     loop = asyncio.get_running_loop()
                     _ = loop.run_in_executor(
                         PROCESS_POOL, run_wisp, 
-                        {
-                            # fix for internal wisp processing problems
-                            "working_dir":str(working_dir)+str(os.path.sep), 
-                            "input_dir":str(input_fle),
-                            "ID_Column_Name":id_col,
-                            "Smiles_Column_Name":smiles_col,
-                            "Target_Column_Name":target_col,
-                            "use_GNN":False,
-                            "fast_run":True,
-                            },  metafle
+                        args, metafle
                     )
+                else:
+                    run_wisp(args,metafle)
 
 
             resp = json.dumps(
