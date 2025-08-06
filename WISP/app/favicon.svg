@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="7.5mm"
+   height="7.5mm"
+   viewBox="0 0 7.5 7.5"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   sodipodi:docname="favicon.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="0.70555556"
+     inkscape:cx="381.25984"
+     inkscape:cy="343.70079"
+     inkscape:window-width="1920"
+     inkscape:window-height="1027"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2">
+    <rect
+       x="29.763781"
+       y="219.68504"
+       width="199.84251"
+       height="147.40157"
+       id="rect186" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-6.375,-8.25)">
+    <circle
+       style="fill:#2452ba;stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:2;stroke-opacity:0;paint-order:fill markers stroke"
+       id="path450"
+       cx="10.125"
+       cy="12"
+       r="3.75" />
+    <text
+       xml:space="preserve"
+       transform="matrix(0.12599206,0,0,0.12599206,4.0535714,-18.535714)"
+       id="text184"
+       style="font-size:40px;line-height:1.25;font-family:Arial;-inkscape-font-specification:'Arial, Normal';word-spacing:0px;white-space:pre;shape-inside:url(#rect186);display:inline;fill:#99c1f1"><tspan
+         x="29.763672"
+         y="256.41919"
+         id="tspan808"><tspan
+           style="font-family:'American Typewriter';-inkscape-font-specification:'American Typewriter'"
+           id="tspan806">W</tspan></tspan></text>
+  </g>
+</svg>
