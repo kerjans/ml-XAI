@@ -180,8 +180,6 @@ def GridSimilarityMaps(mols, weights, annots=None, *args,**kwargs,):
     overall_min = np.array(weights).reshape(-1).min()
     overall_max = np.array(weights).reshape(-1).max()
 
-    print("min",overall_min,"max",overall_max,)
-
     images = []
     for mol,weight in zip(mols,weights):
         draw2d = rdMolDraw2D.MolDraw2DCairo(300,300)

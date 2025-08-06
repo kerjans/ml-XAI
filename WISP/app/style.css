@@ -179,6 +179,10 @@ button:active:not(.collapsible) {
     cursor: pointer;
 }
 
+.job-buttons {
+    font-size: 70%;
+}
+
 .active-job-button {
     background-color: rgb(86, 108, 160);
     color: #ffffff;
@@ -328,4 +332,65 @@ ul.gallery>li img:hover {
     border: 1px solid #ccc;
     background-color: white;
 
+}
+
+
+
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#overlayText {
+    background: white;
+    padding: 20px;
+    border-radius: 5px;
+    max-height: 80%;
+    overflow-y: auto;
+    width: 80%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.closeButton {
+    margin-top: 10px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.logButton {
+    margin: 10px;
+    background-color: #0e2267;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.errButton-inactive {
+    margin: 10px;
+    background-color: #1a264f;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.errButton-active {
+    margin: 10px;
+    background-color: #950000;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
 }

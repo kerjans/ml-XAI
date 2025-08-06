@@ -1,6 +1,12 @@
+
+
+
+
+
+
+
 // see: https://stackoverflow.com/questions/58676967/load-textfile-via-drag-and-drop-on-textarea
 // and: https://www.w3schools.com/html/html5_draganddrop.asp
-
 console.log("loading ui.js");
 function allowDrop(ev) {
     ev.preventDefault();
@@ -86,6 +92,54 @@ const renderJobs = function () {
                 status_label.style.marginLeft = "10px";
                 status_label.innerText = status;
                 bd.appendChild(status_label);
+
+                const closeButton = document.createElement('button');
+                closeButton.innerText = "close";
+                closeButton.classList.add("closeButton");
+
+                closeButton.addEventListener('click', () => {
+                    overlay.style.display = 'none';
+                    document.getElementById("overlayText").innerText = "";
+                });
+
+                const overlay = document.getElementById('overlay');
+
+                const openLog = document.createElement('button');
+                openLog.classList.add("logButton");
+
+                openLog.innerText = "log";
+                openLog.addEventListener('click', () => {
+                    const p = document.createElement("p");
+                    p.innerText = res["log_out"];
+                    overlay.style.display = 'flex';
+                    document.getElementById("overlayText").appendChild(p);
+                    document.getElementById("overlayText").appendChild(closeButton);
+
+                });
+
+                const openErr = document.createElement('button');
+
+                if (res["log_err"].length > 0) {
+                    openErr.classList.add("errButton-active");
+                }
+                else {
+                    openErr.classList.add("errButton-inactive");
+                }
+
+                openErr.innerText = "err";
+                openErr.addEventListener('click', () => {
+                    const p = document.createElement("p");
+                    p.innerText = res["log_err"];
+                    overlay.style.display = 'flex';
+                    document.getElementById("overlayText").appendChild(p);
+                    document.getElementById("overlayText").appendChild(closeButton);
+
+                });
+
+
+                bd.appendChild(openLog);
+                bd.appendChild(openErr);
+
                 elt.appendChild(bd);
             });
         }
@@ -687,4 +741,9 @@ const renderMMPOverview = function (data) {
 window.addEventListener("load", (event) => {
     renderJobs();
     renderMMPOverview();
+
 });
+
+
+
+

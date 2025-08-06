@@ -8,7 +8,9 @@ import io
 import base64
 import random
 import secrets
+import sys
 import time
+from standardizer.io import Silencer
 import tornado
 import tornado.ioloop
 import tornado.web
@@ -376,15 +378,31 @@ class GuessColumnsHandler(BaseHandler):
 
 from WISP import WISP # :o
 from WISP import plotting_helper
+from contextlib import redirect_stdout
 def run_wisp(args,metafle):
-    print("START","run_wisp")
-    WISP.DISPLAY_PLOTS = False
-    plotting_helper.DISPLAY_PLOTS = False
-    #time.sleep(20)
-    WISP.WISP(**args)
-    print("END","run_wisp")
-    metadat = json.loads(metafle.read_text())
+
+    working_dir = metafle.parent
+    log_out_fle = working_dir / "out.log"
+    log_err_fle = working_dir / "err.log"
+    log_out_fle.touch(exist_ok=True,)
+    log_err_fle.touch(exist_ok=True,)
+
+
+    with open(log_out_fle,"w") as fout:
+        with open(log_err_fle,"w") as ferr:
+            with redirect_stdout(fout):
+                print("START","run_wisp")
+                sys.stdout.flush()
+                WISP.DISPLAY_PLOTS = False
+                plotting_helper.DISPLAY_PLOTS = False
+                WISP.WISP(**args)
+                print("END","run_wisp")
+                sys.stdout.flush()
+                metadat = json.loads(metafle.read_text())
+
     metadat["status"] = "done"
+    metadat["log_out"] = log_out_fle.read_text()
+    metadat["log_err"] = log_err_fle.read_text()
     metafle.write_text(json.dumps(metadat))
     return
 
@@ -404,9 +422,18 @@ class JobStatusHandler(BaseHandler):
         metafle = working_dir / "metadata.json"
         metadat = json.loads(metafle.read_text())
 
+        log_out_fle = working_dir / "out.log"
+        log_out_fle.touch(exist_ok=True,)
+        log_out_txt = log_out_fle.read_text()
+        log_err_fle = working_dir / "out.log"
+        log_err_fle.touch(exist_ok=True,)
+        log_err_txt = log_err_fle.read_text()
+
         resp = json.dumps(
             {
                 "job_status": metadat["status"],
+                "log_out": log_out_txt,
+                "log_err": log_err_txt,
             }
         )
         self.write(resp)
@@ -474,7 +501,7 @@ class JobSubmissionHandler(BaseHandler):
                     "use_GNN":False,
                     "fast_run":True,
                     }
-                PROCESS_PARALLEL = False
+                PROCESS_PARALLEL = True
                 if PROCESS_PARALLEL:
                     loop = asyncio.get_running_loop()
                     _ = loop.run_in_executor(
