@@ -265,9 +265,28 @@ const refreshFirstPage = function () {
     explain_exp_div.style.width = "350px";
     cp.appendChild(explain_exp_div);
 
-    // Second Row: Showing the examples
+    // Second Row: Showing the predictive
+    // performance on test data
     const cp2 = document.createElement("div");
     cp2.style.display = "table-row";
+
+
+    const pred_test_div = document.createElement("div");
+    const pred_test_label = document.createElement("div");
+    pred_test_label.innerText = "Predictive performance on test set";
+    const pred_test_img = document.createElement('img');
+
+    pred_test_img.src = "data:image/png;base64," + IMAGES["20-80-split-true-pred.png"];
+    styleImage(pred_test_img);
+
+    pred_test_div.appendChild(pred_test_label);
+    pred_test_div.appendChild(pred_test_img);
+
+    pred_test_div.style.display = "inline";
+    pred_test_div.style.display = "table-cell";
+    pred_test_div.style.width = "350px";
+    cp2.appendChild(pred_test_div);
+
 
 
     if (false) {
@@ -306,9 +325,9 @@ const refreshFirstPage = function () {
     }
 
     tab.append(cp);
+    tab.append(cp2);
 
     document.getElementById("result-div").appendChild(tab);
-    document.getElementById("result-div").appendChild(cp2);
 };
 
 // An example showing how one could display molecules
