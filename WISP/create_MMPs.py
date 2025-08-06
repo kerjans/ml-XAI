@@ -1,4 +1,6 @@
 import pandas as pd
+# This here is needed to suppress annoying warnings:
+pd.options.mode.chained_assignment = None  # default='warn'
 import subprocess
 from rdkit import Chem
 

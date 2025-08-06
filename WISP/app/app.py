@@ -378,7 +378,7 @@ class GuessColumnsHandler(BaseHandler):
 
 from WISP import WISP # :o
 from WISP import plotting_helper
-from contextlib import redirect_stdout
+from contextlib import redirect_stdout,redirect_stderr
 def run_wisp(args,metafle):
 
     working_dir = metafle.parent
@@ -390,15 +390,16 @@ def run_wisp(args,metafle):
 
     with open(log_out_fle,"w") as fout:
         with open(log_err_fle,"w") as ferr:
-            with redirect_stdout(fout):
-                print("START","run_wisp")
-                sys.stdout.flush()
-                WISP.DISPLAY_PLOTS = False
-                plotting_helper.DISPLAY_PLOTS = False
-                WISP.WISP(**args)
-                print("END","run_wisp")
-                sys.stdout.flush()
-                metadat = json.loads(metafle.read_text())
+            with redirect_stderr(ferr):
+                with redirect_stdout(fout):
+                    print("START","run_wisp")
+                    sys.stdout.flush()
+                    WISP.DISPLAY_PLOTS = False
+                    plotting_helper.DISPLAY_PLOTS = False
+                    WISP.WISP(**args)
+                    print("END","run_wisp")
+                    sys.stdout.flush()
+                    metadat = json.loads(metafle.read_text())
 
     metadat["status"] = "done"
     metadat["log_out"] = log_out_fle.read_text()
@@ -425,7 +426,7 @@ class JobStatusHandler(BaseHandler):
         log_out_fle = working_dir / "out.log"
         log_out_fle.touch(exist_ok=True,)
         log_out_txt = log_out_fle.read_text()
-        log_err_fle = working_dir / "out.log"
+        log_err_fle = working_dir / "err.log"
         log_err_fle.touch(exist_ok=True,)
         log_err_txt = log_err_fle.read_text()
 

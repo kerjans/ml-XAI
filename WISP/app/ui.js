@@ -86,7 +86,15 @@ const renderJobs = function () {
 
             }).then(res => res.json()).then(res => {
                 console.log("Request complete! response:", res);
-                const status = res["job_status"];
+
+                const any_errors = res["log_err"].length > 0;
+                var status = null;
+                if (any_errors) {
+                    status = "failed";
+                }
+                else {
+                    status = res["job_status"];
+                }
                 const status_label = document.createElement("p");
                 status_label.style.display = "inline";
                 status_label.style.marginLeft = "10px";
@@ -119,7 +127,7 @@ const renderJobs = function () {
 
                 const openErr = document.createElement('button');
 
-                if (res["log_err"].length > 0) {
+                if (any_errors) {
                     openErr.classList.add("errButton-active");
                 }
                 else {
