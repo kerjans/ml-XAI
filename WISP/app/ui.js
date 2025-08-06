@@ -287,43 +287,6 @@ const refreshFirstPage = function () {
     pred_test_div.style.width = "350px";
     cp2.appendChild(pred_test_div);
 
-
-
-    if (false) {
-        // Top Left -- How well can we explain predictions?
-        const examples_div = document.createElement("div");
-        const examples_label = document.createElement("div");
-        examples_label.innerText = "Molecular explanation examples:";
-        const examples_img = document.createElement('img');
-
-        const col3 = "positive_examples_Atom Attributions-Training.png";
-        examples_img.src = "data:image/png;base64," + IMAGES[col3];
-        styleImage(examples_img);
-        examples_img.style.width = "600px";
-
-        examples_div.appendChild(examples_label);
-        const slider_div = document.createElement("div");
-        slider_div.innerHTML = ` <input type="range" style="width: 200px;" id="saturation-slider" min="0" max="10000" value="100">`;
-        const slider = slider_div.children[0];
-
-        slider.addEventListener('input', function () {
-            const saturationValue = slider.value;
-
-            examples_img.style.filter = `saturate($ {
-                            saturationValue
-                        }
-
-                        %)`;
-        });
-        examples_div.appendChild(slider_div);
-        examples_div.appendChild(examples_img);
-
-        examples_div.style.display = "inline";
-        examples_div.style.display = "table-cell";
-        examples_div.style.width = "350px";
-        cp2.appendChild(examples_div);
-    }
-
     tab.append(cp);
     tab.append(cp2);
 
