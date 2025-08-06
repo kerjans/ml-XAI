@@ -8,6 +8,7 @@ model.
 from pathlib import Path
 import pickle
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import AllChem

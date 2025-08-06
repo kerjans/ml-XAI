@@ -1,4 +1,5 @@
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 from pathlib import Path
 import shutil
 from rdkit.Chem import Draw

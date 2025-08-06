@@ -1,6 +1,7 @@
 from rdkit.Chem import rdmolops
 from rdkit import Chem
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 import pandas as pd
 from WISP.ml_helper import *
 

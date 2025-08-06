@@ -16,6 +16,7 @@ import joblib
 
 import random
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 import pandas as pd
 from rdkit.Chem import Draw
 from rdkit import Chem

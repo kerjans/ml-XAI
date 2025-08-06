@@ -62,6 +62,7 @@ import math
 import random
 import re
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 from typing import List
 
 

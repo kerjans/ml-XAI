@@ -2,6 +2,7 @@ import copy
 import random
 from rdkit import Chem
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 import pandas as pd
 from WISP.ml_helper import *
 

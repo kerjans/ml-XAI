@@ -1,6 +1,7 @@
 from rdkit import Chem
 from rdkit.Chem.Draw import SimilarityMaps
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 
 def get_pred(fp, pred_function):
     """

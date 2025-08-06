@@ -1,6 +1,7 @@
 import selfies as sf
 from collections import defaultdict
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 import pandas as pd
 import re
 from tqdm import tqdm

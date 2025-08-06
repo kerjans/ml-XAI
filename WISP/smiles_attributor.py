@@ -25,6 +25,7 @@ the original implementation.
 import os
 import re
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 import pandas as pd
 from random import randint
 import pickle

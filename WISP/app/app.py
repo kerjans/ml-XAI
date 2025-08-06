@@ -17,6 +17,7 @@ import tornado.web
 from tornado import web
 import pandas as pd
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 
 import concurrent.futures
 

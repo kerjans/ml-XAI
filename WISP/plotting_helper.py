@@ -1,6 +1,7 @@
 import pandas as pd
 import math
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 
 from rdkit import Chem
 from rdkit.Chem import Draw
