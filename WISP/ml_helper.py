@@ -12,6 +12,7 @@ from rdkit.Chem import AllChem
 from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 
 from sklearn.experimental import enable_halving_search_cv
+from sklearn.inspection import permutation_importance
 from sklearn.model_selection import KFold
 from sklearn.model_selection import HalvingRandomSearchCV
 from sklearn.preprocessing import StandardScaler
@@ -68,6 +69,14 @@ def _clear_non_finite_values(array):
     non_finite_mask = ~np.isfinite(array)
     array[non_finite_mask] = 0
     return array
+
+
+
+def get_descriptor_names():
+    return sorted(
+        [desc[0] for desc in Chem.Descriptors.descList]
+    )
+
 
 def get_mordred_descriptors(smiles_list):
     
@@ -424,6 +433,35 @@ def get_best_reg_model(model_types, ALLfeatureCOLUMNS, train, Target_Column_Name
     print('With a MAE of: ', best_model_row['MAE'])
     print('Feature: ', best_model_row['Feature'])
     results_df.to_csv(working_dir + "Grid-Search.csv", index=False)
+
+
+    # Where feature importance is concerned, we can only interpret models that:
+    # are trained on molecular descriptors and the expose their feature_importance.
+    # Other models cannot be interpreted!
+    interpret_results = results_df[results_df["Feature"].apply(lambda f: "mordred" in str(f).lower())]
+    if len(interpret_results):
+        best_row = interpret_results.sort_values("R2").iloc[0]
+        best_mod = best_row["Model"]
+        best_feature = best_row["Feature"]
+
+        print("FEATURE IMPORTANCES:")
+        print("=="*40)
+        X = get_features(train,[best_feature])
+        y = train[Target_Column_Name]
+        result = permutation_importance(best_mod, X, y, n_repeats=10,
+                                        random_state=0)
+        #result.importances_mean
+        #result.importances_std
+        df_feature_imp = pd.DataFrame({
+            "feature_name": get_descriptor_names(),
+            "feature_importance": list(result.importances_mean),
+        })
+        df_feature_imp = df_feature_imp.sort_values("feature_importance",ascending=False,)
+        print("feature_name","","feature_importance")
+        for _,row in df_feature_imp.iloc[0:10].iterrows():
+            print(row["feature_name"],"",row["feature_importance"])
+        print("=="*40)
+
 
     #delete checkpoints folder
     if model.__class__.__name__ != "SklChemprop":
