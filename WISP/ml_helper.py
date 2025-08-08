@@ -71,70 +71,46 @@ def get_mordred_descriptors(smiles):
 
     return np.hstack(mat_descs)
 
-def get_morgan_fingerprint(smiles):
-    """
-    Calculates the Morgan Fingerprint (2028 bits, radius of 2) for the input smiles.
+def get_morgan_fingerprint(smiles_list):
+    for smiles in smiles_list:
+        mol = Chem.MolFromSmiles(smiles, sanitize=False)
+        Chem.SanitizeMol(mol)#to keep the explicit hydrogens
+        
+        if mol is not None:
+            generator = GetMorganGenerator(radius=2, fpSize=2048)
+            fingerprint = generator.GetFingerprint(mol)
+            fingerprint = fingerprint.ToBitString()
+            fingerprint = np.array(list(fingerprint))
+            yield fingerprint
+        else:
+            yield None
 
-    Keyword arguments:
-    -- smiles: Smiles for the which the fingerprint should be calculated.
-
-    Returns:
-    -- fingerprint: Morgan Fingerprint as array to the respective smiles.
-    """
-    mol = Chem.MolFromSmiles(smiles, sanitize=False)
-    Chem.SanitizeMol(mol)#to keep the explicit hydrogens
-    
-    if mol is not None:
-        generator = GetMorganGenerator(radius=2, fpSize=2048)
-        fingerprint = generator.GetFingerprint(mol)
-        fingerprint = fingerprint.ToBitString()
-        fingerprint = np.array(list(fingerprint))
-        return fingerprint
-    else:
-        return None
-
-def get_MACCS_fingerprint(smiles):
-    """
-    Calculates the MCCS Keys Fingerprint for the input smiles.
-
-    Keyword arguments:
-    -- smiles: Smiles for the which the fingerprint should be calculated.
-
-    Returns:
-    -- maccs_fp: MCCS Keys Fingerprint as array to the respective smiles.
-    """
-    mol = Chem.MolFromSmiles(smiles, sanitize=False)
-    Chem.SanitizeMol(mol)#to keep the explicit hydrogens
-    
-    if mol is not None:
-        maccs_fp = AllChem.GetMACCSKeysFingerprint(mol)
-        maccs_fp = maccs_fp.ToBitString()
-        maccs_fp = np.array(list(maccs_fp))
-        return maccs_fp
-    else:
-        return None
+def get_MACCS_fingerprint(smiles_list):
+    for smiles in smiles_list:
+        mol = Chem.MolFromSmiles(smiles, sanitize=False)
+        Chem.SanitizeMol(mol)#to keep the explicit hydrogens
+        
+        if mol is not None:
+            maccs_fp = AllChem.GetMACCSKeysFingerprint(mol)
+            maccs_fp = maccs_fp.ToBitString()
+            maccs_fp = np.array(list(maccs_fp))
+            yield maccs_fp
+        else:
+            yield None
         
 
-def get_RDK_fingerprint(smiles):
-    """
-    Calculates the RDK Fingerprint (Maximal pathlenght of 7 and 2048 bits) for the input smiles.
-
-    Keyword arguments:
-    -- smiles: Smiles for the which the fingerprint should be calculated.
-
-    Returns:
-    -- rdkit_fp: RDK Fingerprint as array to the respective smiles.
-    """
-    mol = Chem.MolFromSmiles(smiles, sanitize=False)
-    Chem.SanitizeMol(mol)#to keep the explicit hydrogens
-    
-    if mol is not None:
-        rdkit_fp = AllChem.RDKFingerprint(mol, maxPath=7)
-        rdkit_fp = rdkit_fp.ToBitString()
-        rdkit_fp = np.array(list(rdkit_fp))
-        return rdkit_fp
-    else:
-        return None
+def get_RDK_fingerprint(smiles_list):
+    for smiles in smiles_list:
+        mol = Chem.MolFromSmiles(smiles, sanitize=False)
+        Chem.SanitizeMol(mol)#to keep the explicit hydrogens
+        
+        if mol is not None:
+            rdkit_fp = AllChem.RDKFingerprint(mol, maxPath=7)
+            rdkit_fp = rdkit_fp.ToBitString()
+            rdkit_fp = np.array(list(rdkit_fp))
+            yield rdkit_fp
+        else:
+            yield None
     
 def hp_search_helper(model, df_train, target,feature):
     """
@@ -294,12 +270,10 @@ def features_and_reg_model_types(data,fast_run=False):
         model_types (list of sklearn estimators):
             A list of untrained regression model instances to try.
     """
-    data['Morgan_Fingerprint 2048Bit 2rad'] = data['smiles_std'].apply(get_morgan_fingerprint)
-    data['MACCS_Fingerprint'] = data['smiles_std'].apply(get_MACCS_fingerprint)
-    data['RDK_Fingerprint'] = data['smiles_std'].apply(get_RDK_fingerprint)
-
-    descs = get_mordred_descriptors(data['smiles_std'].tolist())
-    data['mordred'] = list(descs)
+    data['Morgan_Fingerprint 2048Bit 2rad'] = list(get_morgan_fingerprint(data['smiles_std']))
+    data['MACCS_Fingerprint'] = list(get_MACCS_fingerprint(data['smiles_std']))
+    data['RDK_Fingerprint'] = list(get_RDK_fingerprint(data['smiles_std']))
+    data['mordred'] = list(get_mordred_descriptors(data['smiles_std'].tolist()))
 
     if fast_run:
         ALLfeatureCOLUMNS = [
@@ -343,10 +317,10 @@ def features_and_class_model_types(data,fast_run=False,):
         feature_columns (list of str): Names of the added fingerprint columns.
         model_types (list): Unfitted classification model instances to try.
     """
-    data['Morgan_Fingerprint 2048Bit 2rad'] = data['smiles_std'].apply(get_morgan_fingerprint)
-    data['MACCS_Fingerprint'] = data['smiles_std'].apply(get_MACCS_fingerprint)
-    data['RDK_Fingerprint'] = data['smiles_std'].apply(get_RDK_fingerprint)
-    data['mordred'] = get_mordred_descriptors(data['smiles_std'].tolist())
+    data['Morgan_Fingerprint 2048Bit 2rad'] = list(get_morgan_fingerprint(data['smiles_std']))
+    data['MACCS_Fingerprint'] = list(get_MACCS_fingerprint(data['smiles_std']))
+    data['RDK_Fingerprint'] = list(get_RDK_fingerprint(data['smiles_std']))
+    data['mordred'] = list(get_mordred_descriptors(data['smiles_std'].tolist()))
 
     if fast_run:
         ALLfeatureCOLUMNS = [
@@ -598,8 +572,8 @@ def add_predictions(data_MMPs, feature_function, model):
             - 'Feature_1' and 'predictions_1' for smiles_1
             - 'Feature_2' and 'predictions_2' for smiles_2
     """
-    data_MMPs['Feature_1'] = data_MMPs['smiles_1'].apply(else_none(feature_function))
-    data_MMPs['Feature_2'] = data_MMPs['smiles_2'].apply(else_none(feature_function))
+    data_MMPs['Feature_1'] = list(feature_function(data_MMPs['smiles_1']))
+    data_MMPs['Feature_2'] = list(feature_function(data_MMPs['smiles_2']))
 
     data_MMPs = data_MMPs[(~data_MMPs["Feature_1"].isna()) & (~data_MMPs["Feature_2"].isna())]
     X_data_attributions_1 = get_features(data_MMPs, ['Feature_1'])
