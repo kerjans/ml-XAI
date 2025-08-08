@@ -1,5 +1,6 @@
 from WISP.log_step import suppress_output
 import numpy as np
+import seaborn as sns
 from standardizer.io import else_none
 np.seterr(divide='ignore', invalid='ignore')
 import pickle
@@ -454,14 +455,33 @@ def get_best_reg_model(model_types, ALLfeatureCOLUMNS, train, Target_Column_Name
         #result.importances_std
         df_feature_imp = pd.DataFrame({
             "feature_name": get_descriptor_names(),
+            "feature_idx": [i for i in range(len(get_descriptor_names()))],
             "feature_importance": list(result.importances_mean),
+            "feature_importance_std": list(result.importances_std),
         })
         df_feature_imp = df_feature_imp.sort_values("feature_importance",ascending=False,)
         print("feature_name","","feature_importance")
-        for _,row in df_feature_imp.iloc[0:10].iterrows():
+
+        df_feature_imp_top = df_feature_imp.iloc[0:10]
+        for _,row in df_feature_imp_top.iterrows():
             print(row["feature_name"],"",row["feature_importance"])
+
         print("=="*40)
 
+        df_feature_imps_top_dist = pd.DataFrame(
+            [
+            {
+                "feature_importance": imp,
+                "feature_name": rw["feature_name"],
+            }
+                for _,rw in df_feature_imp_top.iterrows()
+                for imp in result.importances[rw["feature_idx"]]
+            ]
+        )
+
+        sns.violinplot(data=df_feature_imps_top_dist, x="feature_importance", y="feature_name",)
+        plt.savefig(Path(working_dir) / "feature_imp.svg")
+        plt.clf()
 
     #delete checkpoints folder
     if model.__class__.__name__ != "SklChemprop":
