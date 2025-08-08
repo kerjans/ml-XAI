@@ -1,4 +1,5 @@
 import numpy as np
+from standardizer.io import else_none
 np.seterr(divide='ignore', invalid='ignore')
 import pickle
 import shutil
@@ -27,6 +28,8 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import Lasso
 from sklearn.svm import SVR
 
@@ -55,6 +58,18 @@ def get_features(data, COLUMNS):
 
     X = np.concatenate(features, axis=1)
     return X
+
+from mordred import Calculator, descriptors
+def get_mordred_descriptors(smiles):
+    calc = Calculator(descriptors, ignore_3D=True)
+    mols = [else_none(Chem.MolFromSmiles)(smi) for smi in smiles]
+    df_descs = calc.pandas(mols,nproc=1,quiet=True,)
+    
+    mat_descs = []
+    for col in sorted(df_descs.columns):
+        mat_descs.append(np.vstack(df_descs[col].tolist()))
+
+    return np.hstack(mat_descs)
 
 def get_morgan_fingerprint(smiles):
     """
@@ -155,6 +170,7 @@ def hp_search_helper(model, df_train, target,feature):
     
     'MLPClassifier': {'model__hidden_layer_sizes': [(50,), (100,), (50, 50)], 'model__activation': ['relu', 'tanh'], 'model__solver': ['adam'], 'model__alpha': [0.0001, 0.001, 0.01], 'model__learning_rate': ['constant', 'adaptive'], 'model__max_iter': [200, 500]},
     'GradientBoostingClassifier': {'model__n_estimators': [100, 300, 500], 'model__learning_rate': [0.01, 0.05, 0.1], 'model__max_depth': [3, 5, 7], 'model__subsample': [0.6, 0.8, 1.0], 'model__min_samples_split': [2, 5, 10]},
+    'HistGradientBoostingClassifier': {'model__learning_rate': [0.01, 0.05, 0.1],'model__max_depth': [3, 5, 7, None], 'model__random_state': [42]},
     'GaussianProcessClassifier': {'model__n_restarts_optimizer': [0, 2, 5], 'model__max_iter_predict': [100, 200], 'model__multi_class': ['one_vs_rest'], 'model__warm_start': [True, False]},
 
     'SVR': {'model__C': [0.1, 1, 10, 100], 'model__kernel': ['rbf'],  'model__gamma': ['scale', 'auto', 1, 0.001, 0.01, 0.1]},
@@ -164,6 +180,7 @@ def hp_search_helper(model, df_train, target,feature):
     'BayesianRidge': {'model__alpha_1': [1e-7, 1e-6, 1e-5],'model__alpha_2': [1e-7, 1e-6, 1e-5],'model__lambda_1': [1e-7, 1e-6, 1e-5],'model__lambda_2': [1e-7, 1e-6, 1e-5]},
     'Lasso': {'model__alpha': [0.001, 0.01, 0.1, 1.0, 10.0],'model__max_iter': [1000, 5000],'model__tol': [1e-4, 1e-3, 1e-2],'model__selection': ['cyclic', 'random'], 'model__random_state': [42]},
     'GradientBoostingRegressor': {'model__n_estimators': [100, 300, 500],'model__learning_rate': [0.01, 0.05, 0.1],'model__max_depth': [3, 5, 7],'model__subsample': [0.6, 0.8, 1.0],'model__min_samples_split': [2, 5, 10], 'model__random_state': [42]},
+    'HistGradientBoostingRegressor': {'model__learning_rate': [0.01, 0.05, 0.1],'model__max_depth': [3, 5, 7, None], 'model__random_state': [42]},
     'LinearRegression': {},
     'GaussianProcessRegressor': {'model__alpha': [1e-10, 1e-5, 1e-2],'model__n_restarts_optimizer': [0, 2, 5, 10],'model__normalize_y': [True, False]}
     }
@@ -173,6 +190,7 @@ def hp_search_helper(model, df_train, target,feature):
         'RandomForestClassifier': 'f1',
         'MLPClassifier': 'f1',
         'GradientBoostingClassifier': 'f1',
+        'HistGradientBoostingClassifier': 'f1',
         'GaussianProcessClassifier': 'f1',
         'RandomForestRegressor': "r2",
         'SVR': "r2",
@@ -180,6 +198,7 @@ def hp_search_helper(model, df_train, target,feature):
         'BayesianRidge': 'r2',
         'Lasso': 'r2',
         'GradientBoostingRegressor': 'r2',
+        'HistGradientBoostingRegressor': 'r2',
         'LinearRegression': 'r2',
         'GaussianProcessRegressor': 'r2'
     }
@@ -279,8 +298,14 @@ def features_and_reg_model_types(data,fast_run=False):
     data['MACCS_Fingerprint'] = data['smiles_std'].apply(get_MACCS_fingerprint)
     data['RDK_Fingerprint'] = data['smiles_std'].apply(get_RDK_fingerprint)
 
+    descs = get_mordred_descriptors(data['smiles_std'].tolist())
+    data['mordred'] = list(descs)
+
     if fast_run:
-        ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',]
+        ALLfeatureCOLUMNS = [
+            'Morgan_Fingerprint 2048Bit 2rad',
+            #"mordred",
+            ]
     else:
         ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
             'RDK_Fingerprint',
@@ -288,7 +313,10 @@ def features_and_reg_model_types(data,fast_run=False):
     
         
     if fast_run:
-        model_types = [RandomForestRegressor(),]
+        model_types = [
+            #RandomForestRegressor(),
+             HistGradientBoostingRegressor(),
+             ]
     else:
         model_types = [MLPRegressor(), 
             BayesianRidge(), 
@@ -318,9 +346,12 @@ def features_and_class_model_types(data,fast_run=False,):
     data['Morgan_Fingerprint 2048Bit 2rad'] = data['smiles_std'].apply(get_morgan_fingerprint)
     data['MACCS_Fingerprint'] = data['smiles_std'].apply(get_MACCS_fingerprint)
     data['RDK_Fingerprint'] = data['smiles_std'].apply(get_RDK_fingerprint)
+    data['mordred'] = get_mordred_descriptors(data['smiles_std'].tolist())
 
     if fast_run:
-        ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',]
+        ALLfeatureCOLUMNS = [
+            #'Morgan_Fingerprint 2048Bit 2rad',
+            "mordred"]
     else:
         ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
             'RDK_Fingerprint',
@@ -328,7 +359,7 @@ def features_and_class_model_types(data,fast_run=False,):
         
     if fast_run:
         model_types = [
-            RandomForestClassifier(), 
+            RandomForestClassifier(),HistGradientBoostingClassifier(),
         ]
     else:
         model_types = [MLPClassifier(), 
@@ -392,6 +423,8 @@ def get_best_reg_model(model_types, ALLfeatureCOLUMNS, train, Target_Column_Name
         feature_function = get_RDK_fingerprint
     if best_model_row['Feature'] == 'MACCS_Fingerprint':
         feature_function = get_MACCS_fingerprint
+    if best_model_row['Feature'] == 'mordred':
+        feature_function = get_mordred_descriptors
     if best_model_row['Feature'] == 'smiles_std':
         feature_function = identity
 
@@ -565,16 +598,18 @@ def add_predictions(data_MMPs, feature_function, model):
             - 'Feature_1' and 'predictions_1' for smiles_1
             - 'Feature_2' and 'predictions_2' for smiles_2
     """
-    data_MMPs['Feature_1'] = data_MMPs['smiles_1'].apply(feature_function)
+    data_MMPs['Feature_1'] = data_MMPs['smiles_1'].apply(else_none(feature_function))
+    data_MMPs['Feature_2'] = data_MMPs['smiles_2'].apply(else_none(feature_function))
+
+    data_MMPs = data_MMPs[(~data_MMPs["Feature_1"].isna()) & (~data_MMPs["Feature_2"].isna())]
     X_data_attributions_1 = get_features(data_MMPs, ['Feature_1'])
     predictions_1 = model.predict(X_data_attributions_1)
     data_MMPs['predictions_1'] = predictions_1
 
-    data_MMPs['Feature_2'] = data_MMPs['smiles_2'].apply(feature_function)
     X_data_attributions_2 = get_features(data_MMPs, ['Feature_2'])
     predictions_2 = model.predict(X_data_attributions_2)
     data_MMPs['predictions_2'] = predictions_2
-    
+
     return data_MMPs
 
 def split_MMPs_by_set(data_MMPs, test):

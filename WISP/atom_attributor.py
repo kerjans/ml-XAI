@@ -2,6 +2,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdchem import PeriodicTable
 import numpy as np
+from standardizer.io import else_none
 np.seterr(divide='ignore', invalid='ignore')
 import pandas as pd
 
@@ -127,7 +128,13 @@ def predictor_on_smiles(smiles, featureMETHOD, model):
     """
     data_smiles = {'SMILES': [smiles]}
     df_smiles = pd.DataFrame(data_smiles)
-    df_smiles['Feature'] = df_smiles['SMILES'].apply(featureMETHOD)
+    if "mordred" in featureMETHOD.__name__.lower():
+        # First attempt to run in batch mode if possible
+        df_smiles['Feature'] = list(featureMETHOD(df_smiles['SMILES'].tolist()))
+    else:
+        # Feature function does not support batch mode, run one by one
+        df_smiles['Feature'] = df_smiles['SMILES'].apply(featureMETHOD)
+
     prep_features_smiles = get_features(df_smiles, ['Feature'])
     prediction = model.predict(prep_features_smiles)
     return prediction
@@ -168,11 +175,24 @@ def attribute_atoms(smiles: str, model, featureMETHOD) -> np.array:
         if mutated_df.empty:#no mutations were generated
             attributions.append(np.nan)
         else:
-            mutated_df['Feature'] = mutated_df[0].apply(featureMETHOD)
-            prep_features_mutat = get_features(mutated_df, ['Feature'])
-            prediction = model.predict(prep_features_mutat)
-            y_diff = y_org - prediction
-            attributions.append(y_diff.mean())
+
+            if "mordred" in featureMETHOD.__name__.lower():
+                mutated_df['Feature'] = list(featureMETHOD(mutated_df[0]))
+            else:
+                mutated_df['Feature'] = mutated_df[0].apply(else_none(featureMETHOD))
+
+            # It can happen that during morgan fingerprint calculation,
+            # we find that the mutation is somehow an invalid molecule.
+            # In this case, we find out only here.
+            mutated_df = mutated_df[~mutated_df["Feature"].isna()]
+
+            if mutated_df.empty:#no mutations were generated
+                attributions.append(np.nan)
+            else:
+                prep_features_mutat = get_features(mutated_df, ['Feature'])
+                prediction = model.predict(prep_features_mutat)
+                y_diff = y_org - prediction
+                attributions.append(y_diff.mean())
 
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
     Chem.SanitizeMol(mol)  # to keep the explicit hydrogens

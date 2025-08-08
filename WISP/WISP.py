@@ -182,7 +182,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
     color_coding =['#10384f']
     
     #model/descriptor agnostic
-    if fast_run:
+    if fast_run and not os.environ.get("_WISP_NO_PARALLEL"):
         with multiprocessing.Pool(processes=6) as pool:
             data['Atom Attributions'] = pool.starmap(attribute_atoms,[(s,model,feature_function) for s in data["smiles_std"].tolist()],)
     else:

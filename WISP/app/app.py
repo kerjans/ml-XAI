@@ -1,6 +1,9 @@
 
 from io import StringIO
 import os
+# Silence any TQDM output as it is writing to stderr!!!!
+os.environ["TQDM_DISABLE"] = "True"
+
 from pathlib import Path
 import asyncio
 import json
@@ -10,7 +13,7 @@ import random
 import secrets
 import sys
 import time
-from standardizer.io import Silencer
+from standardizer.io import Silencer, else_none
 import tornado
 import tornado.ioloop
 import tornado.web
@@ -474,6 +477,14 @@ class JobSubmissionHandler(BaseHandler):
                     {"smiles": smiles, "target": target,
                      "ID": [str(i) for i in range(len(smiles))]}
                     )
+                
+                if len(df_new) > 5000:
+                    df_new = df_new[~df_new["smiles"].apply(else_none(Chem.MolFromSmiles)).isna()]
+                    df_new = df_new.sample(5000,random_state=123,)
+
+                print("WARNING: DOWNSAMPLE by 50%")
+                df_new = df_new.sample(frac=.5)
+
                 id_col = "ID"
 
                 here = Path(__file__).parent
@@ -491,6 +502,7 @@ class JobSubmissionHandler(BaseHandler):
                 metafle.write_text(json.dumps(metadat))
 
                 input_fle = working_dir / f"input_{job_id}.csv"
+
                 df_new.to_csv(input_fle)
 
                 args = {
@@ -503,7 +515,7 @@ class JobSubmissionHandler(BaseHandler):
                     "use_GNN":False,
                     "fast_run":True,
                     }
-                PROCESS_PARALLEL = True
+                PROCESS_PARALLEL = False
                 if PROCESS_PARALLEL:
                     loop = asyncio.get_running_loop()
                     _ = loop.run_in_executor(
@@ -511,6 +523,7 @@ class JobSubmissionHandler(BaseHandler):
                         args, metafle
                     )
                 else:
+                    os.environ["_WISP_NO_PARALLEL"] = "True"
                     run_wisp(args,metafle)
 
 
