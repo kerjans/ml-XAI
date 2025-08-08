@@ -11,6 +11,7 @@ warnings.filterwarnings("ignore", module="lightning.pytorch")
 warnings.filterwarnings("ignore", module="sklearn")
 
 
+from WISP.log_step import LogStep, suppress_output
 from standardizer.mol_standardizer import *
 from WISP.ml_helper import *
 from WISP.SHAP_MORGAN_attributor import *
@@ -73,27 +74,10 @@ def normalize_atom_attributions(data, input_col):
     
     return data
 
-@contextlib.contextmanager
-def suppress_output():
-    """
-    Context manager that temporarily redirects stdout and stderr to os.devnull,
-    silencing any print or logging output within its block.
 
-    Usage:
-        with suppress_output():
-            # code whose stdout/stderr you want to suppress
-            ...
-    """
-    with open(os.devnull, 'w') as devnull:
-        old_stdout = sys.stdout
-        old_stderr = sys.stderr
-        sys.stdout = devnull
-        sys.stderr = devnull
-        try:
-            yield
-        finally:
-            sys.stdout = old_stdout
-            sys.stderr = old_stderr
+
+
+
 
 def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Column_Name, model_available=None, use_GNN=True, fast_run=False,):
     """
@@ -130,48 +114,49 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
     #set type
     task_type = detect_binary_classification(data, Target_Column_Name)   
 
-    #preprocessing/standardizing
-    with suppress_output():
-        std = Standardizer(max_num_atoms=1000,#tipp jan: 100
-                    max_num_tautomers=10,
-                    include_stereoinfo=False,
-                    keep_largest_fragment=True, 
-                    canonicalize_tautomers=True, 
-                    normalize=True, 
-                    sanitize_mol=True)
-    data["smiles_std"] = data[Smiles_Column_Name].apply(lambda smi: std(smi)[0]) 
+
+    with LogStep("Standardization"):
+        with suppress_output():
+            std = Standardizer(max_num_atoms=1000,#tipp jan: 100
+                        max_num_tautomers=10,
+                        include_stereoinfo=False,
+                        keep_largest_fragment=True, 
+                        canonicalize_tautomers=True, 
+                        normalize=True, 
+                        sanitize_mol=True)
+        data["smiles_std"] = data[Smiles_Column_Name].apply(lambda smi: std(smi)[0]) 
+
     data = filter_duplicates(data, 'smiles_std', Target_Column_Name)
 
     #save data in smi format
     data[['smiles_std', 'ID', Target_Column_Name]].to_csv(working_dir + "data.smi", sep='\t', index=False, header=False)
 
-    print("Standardization done")
-
     if model_available is None:
 
-        if task_type == 'regression':
+        with LogStep("Train Model"):
+            if task_type == 'regression':
 
-            #calculate fingerprints as descriptors and set settings
-            data, ALLfeatureCOLUMNS, model_types = features_and_reg_model_types(data,fast_run=fast_run)
+                #calculate fingerprints as descriptors and set settings
+                data, ALLfeatureCOLUMNS, model_types = features_and_reg_model_types(data,fast_run=fast_run)
 
-            #test/train split
-            test, target_test, train = split_data(data, Target_Column_Name)
-            
-            #find and train best model
-            model, feature_function, featureCOLUMNS  = get_best_reg_model(model_types, ALLfeatureCOLUMNS, train, Target_Column_Name, working_dir, use_GNN)
+                #test/train split
+                test, target_test, train = split_data(data, Target_Column_Name)
+                
+                #find and train best model
+                model, feature_function, featureCOLUMNS  = get_best_reg_model(model_types, ALLfeatureCOLUMNS, train, Target_Column_Name, working_dir, use_GNN)
 
-            train_and_evaluate_reg_model(model, train, test, featureCOLUMNS, Target_Column_Name, target_test, working_dir)
+                train_and_evaluate_reg_model(model, train, test, featureCOLUMNS, Target_Column_Name, target_test, working_dir)
 
-        if task_type == 'classification':
-            
-            #calculate fingerprints as descriptors and set settings
-            data, ALLfeatureCOLUMNS, model_types = features_and_class_model_types(data,fast_run=fast_run)
+            if task_type == 'classification':
+                
+                #calculate fingerprints as descriptors and set settings
+                data, ALLfeatureCOLUMNS, model_types = features_and_class_model_types(data,fast_run=fast_run)
 
-            #test/train split
-            test, target_test, train = split_data(data, Target_Column_Name)
+                #test/train split
+                test, target_test, train = split_data(data, Target_Column_Name)
 
-            #find and train standard model
-            model, feature_function, featureCOLUMNS  = get_and_train_class_model(train, test, Target_Column_Name, target_test, working_dir)
+                #find and train standard model
+                model, feature_function, featureCOLUMNS  = get_and_train_class_model(train, test, Target_Column_Name, target_test, working_dir)
 
 
     #load the provided or just trained model
@@ -182,20 +167,10 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
     color_coding =['#10384f']
 
 
-    data["Atom Attributions"] = attribute_atoms(data["smiles_std"].tolist(), model, feature_function)
-    
-    if False: # old code:
-        #model/descriptor agnostic
-        if fast_run and not os.environ.get("_WISP_NO_PARALLEL"):
-            with multiprocessing.Pool(processes=6) as pool:
-                data['Atom Attributions'] = pool.starmap(attribute_atoms,[(s,model,feature_function) for s in data["smiles_std"].tolist()],)
-        else:
-            data['Atom Attributions'] = data['smiles_std'].apply(lambda s: attribute_atoms(s, model, feature_function))
+    with LogStep("Calc Atom Attributions"):
+        data["Atom Attributions"] = attribute_atoms(data["smiles_std"].tolist(), model, feature_function)
+        data = normalize_atom_attributions(data, 'Atom Attributions')
 
-    data = normalize_atom_attributions(data, 'Atom Attributions')
-
-    print("Atom Attribution done")
-    
     if not fast_run:
         #SHAP explainer
         if "Morgan" in inspect.getsource(feature_function):
@@ -228,30 +203,26 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
             color_coding.append('#758ECD')
             print("RDKit Attribution done")
 
-    #save attribution data
     data.to_csv(working_dir + "Attribution_Data.csv", index=False)
 
-    #create heatmaps
     directory = working_dir + "HeatMaps"
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    for index, row in data.iterrows():
-        for attr_method in Attribution_Columns:
-            output_dir = directory + '/'
-            generate_heatmap(data, index, output_dir, 'smiles_std', attr_method, 'ID', task_type)
-    print("Heatmaps have been created")
+    with LogStep("Generating Heatmaps"):
+        for index, row in data.iterrows():
+            for attr_method in Attribution_Columns:
+                output_dir = directory + '/'
+                generate_heatmap(data, index, output_dir, 'smiles_std', attr_method, 'ID', task_type)
 
-    #create MMP database
-    columns_to_keep = Attribution_Columns + [Target_Column_Name]
-    data_MMPs = create_MMP_database(working_dir + "data.smi", working_dir ,data, columns_to_keep)
-    data_MMPs.to_csv(working_dir + "MMPs_with_attributions.csv", index=False)
-    print("MMPs created")
+    with LogStep("Creating MMPs"):
+        columns_to_keep = Attribution_Columns + [Target_Column_Name]
+        data_MMPs = create_MMP_database(working_dir + "data.smi", working_dir ,data, columns_to_keep)
+        data_MMPs.to_csv(working_dir + "MMPs_with_attributions.csv", index=False)
 
-    #add predictions
-    data_MMPs = add_predictions(data_MMPs, feature_function, model)
+    with LogStep("Predict on MMPs"):
+        data_MMPs = add_predictions(data_MMPs, feature_function, model)
 
-    #add indices
     data_MMPs[["unmatched_atom_index_1", "unmatched_atom_index_2"]] = data_MMPs.apply(
     lambda row: pd.Series(get_unmatched_atom_indices_fragments(row["smiles_1"], row["smiles_2"], row["constant"])), axis=1)
 

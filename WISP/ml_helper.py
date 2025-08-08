@@ -1,3 +1,4 @@
+from WISP.log_step import suppress_output
 import numpy as np
 from standardizer.io import else_none
 np.seterr(divide='ignore', invalid='ignore')
@@ -59,17 +60,57 @@ def get_features(data, COLUMNS):
     X = np.concatenate(features, axis=1)
     return X
 
-from mordred import Calculator, descriptors
-def get_mordred_descriptors(smiles):
-    calc = Calculator(descriptors, ignore_3D=True)
-    mols = [else_none(Chem.MolFromSmiles)(smi) for smi in smiles]
-    df_descs = calc.pandas(mols,nproc=1,quiet=True,)
-    
-    mat_descs = []
-    for col in sorted(df_descs.columns):
-        mat_descs.append(np.vstack(df_descs[col].tolist()))
 
-    return np.hstack(mat_descs)
+from rdkit import Chem
+from rdkit.ML.Descriptors import MoleculeDescriptors
+
+def _clear_non_finite_values(array):
+    non_finite_mask = ~np.isfinite(array)
+    array[non_finite_mask] = 0
+    return array
+
+def get_mordred_descriptors(smiles_list):
+    
+    descriptor_calculator = MoleculeDescriptors.MolecularDescriptorCalculator(
+        [desc[0] for desc in Chem.Descriptors.descList]
+    )
+
+    descs = []
+    for smiles in smiles_list:
+        mol = Chem.MolFromSmiles(smiles)
+        
+        if mol is None:
+            descs.append(None)
+            continue
+
+
+        with suppress_output():
+            descriptors = descriptor_calculator.CalcDescriptors(mol)
+
+        descriptor_dict = {desc[0]: value for desc, value in zip(Chem.Descriptors.descList, descriptors)}
+        descs.append(descriptor_dict)
+
+    ks = set()
+    for desc in descs:
+        ks = ks.union(set(desc.keys()))
+
+    ks = sorted(ks)
+
+    float_or_none = else_none(float)
+    desc_vecs = []
+    for desc in descs:
+        this_vec = []
+        if desc:
+            for k in ks:
+                this_vec.append(float_or_none(desc.get(k,None)))
+            desc_vecs.append(this_vec)
+        else:
+            for k in ks:
+                this_vec.append(0) 
+
+    assert len(desc_vecs) == len(smiles_list)
+    return _clear_non_finite_values(np.array(desc_vecs))
+
 
 def get_morgan_fingerprint(smiles_list):
     for smiles in smiles_list:
@@ -277,8 +318,8 @@ def features_and_reg_model_types(data,fast_run=False):
 
     if fast_run:
         ALLfeatureCOLUMNS = [
-            'Morgan_Fingerprint 2048Bit 2rad',
-            #"mordred",
+            #'Morgan_Fingerprint 2048Bit 2rad',
+            "mordred",
             ]
     else:
         ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',

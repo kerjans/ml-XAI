@@ -515,7 +515,7 @@ class JobSubmissionHandler(BaseHandler):
                     "use_GNN":False,
                     "fast_run":True,
                     }
-                PROCESS_PARALLEL = False
+                PROCESS_PARALLEL = True
                 if PROCESS_PARALLEL:
                     loop = asyncio.get_running_loop()
                     _ = loop.run_in_executor(
