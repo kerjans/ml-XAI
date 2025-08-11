@@ -206,7 +206,7 @@ button:active:not(.collapsible) {
     cursor: pointer;
     text-align: right;
     outline: none;
-    font-size: 25px;
+    font-size: 15px;
 }
 
 .collapsiblex-active {
