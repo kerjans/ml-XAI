@@ -253,7 +253,6 @@ const retrieveResults = function (job_id) {
                 const status = res["status"];
 
                 if (status == "success") {
-                    alert("writing featur imp");
                     const elementId = "result-div-4";
                     d3.select(`#${elementId}`).html(res["feature_importance_plot"]);
                 }
