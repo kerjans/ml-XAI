@@ -411,6 +411,29 @@ def run_wisp(args,metafle):
     metafle.write_text(json.dumps(metadat))
     return
 
+class FeatureImportanceHandler(BaseHandler):
+
+    @tornado.web.authenticated
+    @log_function_call
+    def post(self):
+        req = json.loads(self.request.body)
+        job_id = req["job_id"]
+
+        here = Path(__file__).parent
+        working_dir = here / "working_dir" / f"{job_id}"
+
+        feature_imp_fle = working_dir / "feature_imp.svg"
+        feature_imp_fle.touch(exist_ok=True,)
+        svg_content = feature_imp_fle.read_text()
+
+        resp = json.dumps(
+            {
+                "status": "success",
+                "feature_importance_plot": svg_content
+            }
+        )
+        self.write(resp)
+
 
 class JobStatusHandler(BaseHandler):
 
@@ -556,6 +579,7 @@ async def main():
             (r"/HeatMaps", HeatMaps),
             (r"/WispOverviewPage", WispOverviewPage),
             (r"/MMPOverview", MMPOverview),
+            (r"/FeatureImportance", FeatureImportanceHandler),
             (r"/wisp", MainHandler),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
             (r"/login", LoginHandler),
