@@ -1,5 +1,6 @@
 tmp.jpg
 *.pyc
 .DS_STORE
+*.DS_STORE
 WISP/app/input.csv
 WISP/app/working_dir

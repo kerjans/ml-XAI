@@ -236,9 +236,7 @@ const retrieveResults = function (job_id) {
             alert("failure could not parse input!");
         }
     }).then(
-
-    ).then(
-        fetch("MMPOverview", {
+        fetch("FeatureImportance", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -246,26 +244,49 @@ const retrieveResults = function (job_id) {
             body: JSON.stringify({
                 "job_id": job_id
             })
-        }).then(res => res.json()).then(res => {
-            console.log("Request complete! response:", res);
-            const status = res["status"];
+        }
+        ).then(
+            res => res.json()
+        ).then(
+            res => {
+                console.log("Request complete! response:", res);
+                const status = res["status"];
 
-            if (status == "success") {
-                //IMAGES = res["images"];
-                MMP_OVERVIEW_DATA = res["mmp_overview_data"];
-                if (typeof MMP_OVERVIEW_DATA === 'string' || MMP_OVERVIEW_DATA instanceof String)
-                    MMP_OVERVIEW_DATA = JSON.parse(MMP_OVERVIEW_DATA);
+                if (status == "success") {
+                    const elementId = "result-div-4";
+                    d3.select(`#${elementId}`).html(res["feature_importance_plot"]);
+                }
 
-                //refreshFirstPage();
-                //refreshSecondPage();
-                renderMMPOverview(MMP_OVERVIEW_DATA);
             }
+        )).then(
+            fetch("MMPOverview", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "job_id": job_id
+                })
+            }).then(res => res.json()).then(res => {
+                console.log("Request complete! response:", res);
+                const status = res["status"];
 
-            else {
-                alert("failure could not parse input!");
-            }
-        })
-    );
+                if (status == "success") {
+                    //IMAGES = res["images"];
+                    MMP_OVERVIEW_DATA = res["mmp_overview_data"];
+                    if (typeof MMP_OVERVIEW_DATA === 'string' || MMP_OVERVIEW_DATA instanceof String)
+                        MMP_OVERVIEW_DATA = JSON.parse(MMP_OVERVIEW_DATA);
+
+                    //refreshFirstPage();
+                    //refreshSecondPage();
+                    renderMMPOverview(MMP_OVERVIEW_DATA);
+                }
+
+                else {
+                    alert("failure could not parse input!");
+                }
+            })
+        );
 };
 
 const styleImage = function (img) {
@@ -500,7 +521,7 @@ window.onload = () => {
     coll = document.getElementsByClassName("collapsiblex");
     i = 0;
 
-    const contents = { "Jobs": "job-id-div", "Evaluation": "result-div", "Atom Contributions": "result-div-2", "MMP Overview": "result-div-3" }
+    const contents = { "Jobs": "job-id-div", "Evaluation": "result-div", "Atom Contributions": "result-div-2", "MMP Overview": "result-div-3", "Feature Importance": "result-div-4" }
     for (i = 0; i < coll.length; i++) {
         const elt = coll[i];
         const clicked_on = elt.innerText;
