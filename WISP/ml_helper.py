@@ -435,53 +435,7 @@ def get_best_reg_model(model_types, ALLfeatureCOLUMNS, train, Target_Column_Name
     print('Feature: ', best_model_row['Feature'])
     results_df.to_csv(working_dir + "Grid-Search.csv", index=False)
 
-
-    # Where feature importance is concerned, we can only interpret models that:
-    # are trained on molecular descriptors and the expose their feature_importance.
-    # Other models cannot be interpreted!
-    interpret_results = results_df[results_df["Feature"].apply(lambda f: "mordred" in str(f).lower())]
-    if len(interpret_results):
-        best_row = interpret_results.sort_values("R2").iloc[0]
-        best_mod = best_row["Model"]
-        best_feature = best_row["Feature"]
-
-        print("FEATURE IMPORTANCES:")
-        print("=="*40)
-        X = get_features(train,[best_feature])
-        y = train[Target_Column_Name]
-        result = permutation_importance(best_mod, X, y, n_repeats=10,
-                                        random_state=0)
-        #result.importances_mean
-        #result.importances_std
-        df_feature_imp = pd.DataFrame({
-            "feature_name": get_descriptor_names(),
-            "feature_idx": [i for i in range(len(get_descriptor_names()))],
-            "feature_importance": list(result.importances_mean),
-            "feature_importance_std": list(result.importances_std),
-        })
-        df_feature_imp = df_feature_imp.sort_values("feature_importance",ascending=False,)
-        print("feature_name","","feature_importance")
-
-        df_feature_imp_top = df_feature_imp.iloc[0:10]
-        for _,row in df_feature_imp_top.iterrows():
-            print(row["feature_name"],"",row["feature_importance"])
-
-        print("=="*40)
-
-        df_feature_imps_top_dist = pd.DataFrame(
-            [
-            {
-                "feature_importance": imp,
-                "feature_name": rw["feature_name"],
-            }
-                for _,rw in df_feature_imp_top.iterrows()
-                for imp in result.importances[rw["feature_idx"]]
-            ]
-        )
-
-        sns.violinplot(data=df_feature_imps_top_dist, x="feature_importance", y="feature_name",)
-        plt.savefig(Path(working_dir) / "feature_imp.svg")
-        plt.clf()
+    _save_feature_importance_plot(results_df=results_df,train=train,Target_Column_Name=Target_Column_Name,working_dir=working_dir,)
 
     #delete checkpoints folder
     if model.__class__.__name__ != "SklChemprop":
@@ -572,14 +526,14 @@ def get_and_train_class_model(train, test, Target_Column_Name, target_test, work
                 ('model',
                  ProbabilisticRandomForest(random_state=42))])
 
-    #train on whole training set
     prep_train = get_features(train, featureCOLUMNS)
     target_train = train[Target_Column_Name].values
     model.fit(prep_train, target_train)
 
-    #performance on test set
     prep_test = get_features(test, featureCOLUMNS)
     predictions = model.predict(prep_test)
+
+    _train_interp_model_and_save_plot(train=train,Target_Column_Name=Target_Column_Name,working_dir=working_dir,)
 
     #statistic on test set
     predicted_labels = (predictions >= 0.5).astype(int)
@@ -704,3 +658,94 @@ def split_MMPs_by_set(data_MMPs, test):
     test_set = data_MMPs[(data_MMPs['set_1'] == 'test') & (data_MMPs['set_2'] == 'test')]
 
     return train_set, test_set
+
+def _save_feature_importance_plot(results_df,train,Target_Column_Name,working_dir):
+    # Where feature importance is concerned, we can only interpret models that:
+    # are trained on molecular descriptors and the expose their feature_importance.
+    # Other models cannot be interpreted!
+    interpret_results = results_df[results_df["Feature"].apply(lambda f: "mordred" in str(f).lower())]
+    if len(interpret_results):
+        best_row = interpret_results.sort_values("R2").iloc[0]
+        best_mod = best_row["Model"]
+        best_feature = best_row["Feature"]
+
+        print("FEATURE IMPORTANCES:")
+        print("=="*40)
+        X = get_features(train,[best_feature])
+        y = train[Target_Column_Name]
+        result = permutation_importance(best_mod, X, y, n_repeats=10,
+                                        random_state=0)
+        #result.importances_mean
+        #result.importances_std
+        df_feature_imp = pd.DataFrame({
+            "feature_name": get_descriptor_names(),
+            "feature_idx": [i for i in range(len(get_descriptor_names()))],
+            "feature_importance": list(result.importances_mean),
+            "feature_importance_std": list(result.importances_std),
+        })
+        df_feature_imp = df_feature_imp.sort_values("feature_importance",ascending=False,)
+        print("feature_name","","feature_importance")
+
+        df_feature_imp_top = df_feature_imp.iloc[0:10]
+        for _,row in df_feature_imp_top.iterrows():
+            print(row["feature_name"],"",row["feature_importance"])
+
+        print("=="*40)
+
+        df_feature_imps_top_dist = pd.DataFrame(
+            [
+            {
+                "feature_importance": imp,
+                "feature_name": rw["feature_name"],
+            }
+                for _,rw in df_feature_imp_top.iterrows()
+                for imp in result.importances[rw["feature_idx"]]
+            ]
+        )
+
+        sns.violinplot(data=df_feature_imps_top_dist, x="feature_importance", y="feature_name",)
+        plt.savefig(Path(working_dir) / "feature_imp.svg")
+        plt.clf()
+
+
+def _train_interp_model_and_save_plot(train,Target_Column_Name,working_dir):
+    interp_model = Pipeline(steps=[('scaler', StandardScaler()),
+                ('model',
+                HistGradientBoostingClassifier(random_state=42))])
+
+    prep_train = get_features(train, ["mordred"])
+    target_train = train[Target_Column_Name].values
+    interp_model.fit(prep_train,target_train)
+    result = permutation_importance(interp_model, prep_train, target_train, n_repeats=10,
+                                    random_state=0)
+    #result.importances_mean
+    #result.importances_std
+    df_feature_imp = pd.DataFrame({
+        "feature_name": get_descriptor_names(),
+        "feature_idx": [i for i in range(len(get_descriptor_names()))],
+        "feature_importance": list(result.importances_mean),
+        "feature_importance_std": list(result.importances_std),
+    })
+    df_feature_imp = df_feature_imp.sort_values("feature_importance",ascending=False,)
+    print("feature_name","","feature_importance")
+
+    df_feature_imp_top = df_feature_imp.iloc[0:10]
+    for _,row in df_feature_imp_top.iterrows():
+        print(row["feature_name"],"",row["feature_importance"])
+
+    print("=="*40)
+
+    df_feature_imps_top_dist = pd.DataFrame(
+        [
+        {
+            "feature_importance": imp,
+            "feature_name": rw["feature_name"],
+        }
+            for _,rw in df_feature_imp_top.iterrows()
+            for imp in result.importances[rw["feature_idx"]]
+        ]
+    )
+
+    sns.violinplot(data=df_feature_imps_top_dist, x="feature_importance", y="feature_name",)
+    plt.savefig(Path(working_dir) / "feature_imp.svg")
+    plt.clf()
