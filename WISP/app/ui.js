@@ -225,7 +225,6 @@ const retrieveResults = function (job_id) {
         const status = res["status"];
 
         if (status == "success") {
-            MODEL_PERF_OVERVIEW = res["model_perf_overview"];
             IMAGES = res["images"];
             //MOLECULE_IMAGES = res["molecule_images"];
 
@@ -238,6 +237,33 @@ const retrieveResults = function (job_id) {
         }
     });
 
+    fetch("ModelPerfOverview", {
+
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json'
+        }
+
+        ,
+        body: JSON.stringify({
+            "job_id": job_id
+        })
+    }).then(res => res.json()).then(res => {
+        console.log("Request complete! response:", res);
+        const status = res["status"];
+
+        if (status == "success") {
+            const tab_model_overview = document.createElement("div");
+            tab_model_overview.innerHTML = res["model_perf_overview"];
+            const result_div_perf_overview = document.getElementById("result-div-5");
+            result_div_perf_overview.innerHTML = "<p>Performance Overview across Models and Features</p>";
+            result_div_perf_overview.appendChild(tab_model_overview);
+        }
+
+        else {
+            alert("fetching Model Performance Overview failed");
+        }
+    });
 
     fetch("FeatureImportance", {
         method: "POST",
@@ -372,9 +398,6 @@ const refreshFirstPage = function () {
     pred_test_div.style.width = "350px";
     cp2.appendChild(pred_test_div);
 
-    const tab_model_overview = document.createElement("div");
-    tab_model_overview.innerHTML = MODEL_PERF_OVERVIEW;
-    cp2.appendChild(tab_model_overview);
 
     tab.append(cp);
     tab.append(cp2);
@@ -527,7 +550,7 @@ window.onload = () => {
     coll = document.getElementsByClassName("collapsiblex");
     i = 0;
 
-    const contents = { "Jobs": "job-id-div", "Evaluation": "result-div", "Atom Contributions": "result-div-2", "MMP Overview": "result-div-3", "Feature Importance": "result-div-4" }
+    const contents = { "Jobs": "job-id-div", "Models": "result-div-5", "Evaluation": "result-div", "Atom Contributions": "result-div-2", "MMP Overview": "result-div-3", "Feature Importance": "result-div-4" }
     for (i = 0; i < coll.length; i++) {
         const elt = coll[i];
         const clicked_on = elt.innerText;
