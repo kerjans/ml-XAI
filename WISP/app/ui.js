@@ -206,6 +206,7 @@ const submitJob = function () {
 
 CURRENT_JOB_ID = 0;
 MMP_OVERVIEW_DATA = [];
+MODEL_PERF_OVERVIEW = "";
 const retrieveResults = function (job_id) {
     CURRENT_JOB_ID = job_id;
     fetch("WispOverviewPage", {
@@ -224,7 +225,7 @@ const retrieveResults = function (job_id) {
         const status = res["status"];
 
         if (status == "success") {
-
+            MODEL_PERF_OVERVIEW = res["model_perf_overview"];
             IMAGES = res["images"];
             //MOLECULE_IMAGES = res["molecule_images"];
 
@@ -235,58 +236,59 @@ const retrieveResults = function (job_id) {
         else {
             alert("failure could not parse input!");
         }
-    }).then(
-        fetch("FeatureImportance", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                "job_id": job_id
-            })
-        }
-        ).then(
-            res => res.json()
-        ).then(
-            res => {
-                console.log("Request complete! response:", res);
-                const status = res["status"];
+    });
 
-                if (status == "success") {
-                    const elementId = "result-div-4";
-                    d3.select(`#${elementId}`).html(res["feature_importance_plot"]);
-                }
 
+    fetch("FeatureImportance", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            "job_id": job_id
+        })
+    }
+    ).then(
+        res => res.json()
+    ).then(
+        res => {
+            console.log("Request complete! response:", res);
+            const status = res["status"];
+
+            if (status == "success") {
+                const elementId = "result-div-4";
+                d3.select(`#${elementId}`).html(res["feature_importance_plot"]);
             }
-        )).then(
-            fetch("MMPOverview", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    "job_id": job_id
-                })
-            }).then(res => res.json()).then(res => {
-                console.log("Request complete! response:", res);
-                const status = res["status"];
 
-                if (status == "success") {
-                    //IMAGES = res["images"];
-                    MMP_OVERVIEW_DATA = res["mmp_overview_data"];
-                    if (typeof MMP_OVERVIEW_DATA === 'string' || MMP_OVERVIEW_DATA instanceof String)
-                        MMP_OVERVIEW_DATA = JSON.parse(MMP_OVERVIEW_DATA);
+        }
+    );
+    fetch("MMPOverview", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            "job_id": job_id
+        })
+    }).then(res => res.json()).then(res => {
+        console.log("Request complete! response:", res);
+        const status = res["status"];
 
-                    //refreshFirstPage();
-                    //refreshSecondPage();
-                    renderMMPOverview(MMP_OVERVIEW_DATA);
-                }
+        if (status == "success") {
+            //IMAGES = res["images"];
+            MMP_OVERVIEW_DATA = res["mmp_overview_data"];
+            if (typeof MMP_OVERVIEW_DATA === 'string' || MMP_OVERVIEW_DATA instanceof String)
+                MMP_OVERVIEW_DATA = JSON.parse(MMP_OVERVIEW_DATA);
 
-                else {
-                    alert("failure could not parse input!");
-                }
-            })
-        );
+            //refreshFirstPage();
+            //refreshSecondPage();
+            renderMMPOverview(MMP_OVERVIEW_DATA);
+        }
+
+        else {
+            alert("failure could not parse input!");
+        }
+    });
 };
 
 const styleImage = function (img) {
@@ -369,6 +371,10 @@ const refreshFirstPage = function () {
     pred_test_div.style.display = "table-cell";
     pred_test_div.style.width = "350px";
     cp2.appendChild(pred_test_div);
+
+    const tab_model_overview = document.createElement("div");
+    tab_model_overview.innerHTML = MODEL_PERF_OVERVIEW;
+    cp2.appendChild(tab_model_overview);
 
     tab.append(cp);
     tab.append(cp2);

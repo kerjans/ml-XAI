@@ -338,13 +338,20 @@ class WispOverviewPage(BaseHandler):
             img64 = base64.b64encode(hex_data).decode("utf-8")
             images[img_fle.name] = img64
 
+        perf_overview = working_dir / "Grid-Search.csv"
+        df = pd.read_csv(perf_overview)
+        df = df[["Model_Type","Feature","r2","MAE","RMSE",]]
+        df = df.sort_values("MAE")
+
         resp = json.dumps(
             {
                 "images": images,
                 "status": "success",
+                "model_perf_overview": df.to_html(),
             }
         )
         self.write(resp)
+
 
 
 class GuessColumnsHandler(BaseHandler):
@@ -433,6 +440,7 @@ class FeatureImportanceHandler(BaseHandler):
             }
         )
         self.write(resp)
+
 
 
 class JobStatusHandler(BaseHandler):

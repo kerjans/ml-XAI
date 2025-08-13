@@ -328,7 +328,7 @@ def features_and_reg_model_types(data,fast_run=False):
 
     if fast_run:
         ALLfeatureCOLUMNS = [
-            #'Morgan_Fingerprint 2048Bit 2rad',
+            'Morgan_Fingerprint 2048Bit 2rad',
             "mordred",
             ]
     else:
@@ -704,6 +704,7 @@ def _save_feature_importance_plot(results_df,train,Target_Column_Name,working_di
         )
 
         sns.violinplot(data=df_feature_imps_top_dist, x="feature_importance", y="feature_name",)
+        plt.tight_layout()
         plt.savefig(Path(working_dir) / "feature_imp.svg")
         plt.clf()
 
@@ -747,5 +748,6 @@ def _train_interp_model_and_save_plot(train,Target_Column_Name,working_dir):
     )
 
     sns.violinplot(data=df_feature_imps_top_dist, x="feature_importance", y="feature_name",)
+    plt.tight_layout()
     plt.savefig(Path(working_dir) / "feature_imp.svg")
     plt.clf()
