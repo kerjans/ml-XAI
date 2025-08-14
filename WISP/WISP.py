@@ -16,7 +16,6 @@ from standardizer.mol_standardizer import *
 from WISP.ml_helper import *
 from WISP.SHAP_MORGAN_attributor import *
 from WISP.plotting_helper import *
-from WISP.atom_attributor import *
 from WISP.RDKit_attributor import *
 from WISP.create_MMPs import *
 from WISP.get_indices import *
@@ -168,8 +167,21 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
 
 
     with LogStep("Calc Atom Attributions"):
-        data["Atom Attributions"] = attribute_atoms(data["smiles_std"].tolist(), model, feature_function)
-        data = normalize_atom_attributions(data, 'Atom Attributions')
+        VECTORIZE_AA = False
+        if VECTORIZE_AA:
+            assert False
+            from WISP.atom_attributor_vec import attribute_atoms
+            data["Atom Attributions"] = attribute_atoms(data["smiles_std"].tolist(), model, feature_function)
+            data = normalize_atom_attributions(data, 'Atom Attributions')
+        else:
+            from WISP.atom_attributor import attribute_atoms
+            if "identity" in feature_function.__name__:
+                unvec_feature_fun = feature_function
+            else:
+                unvec_feature_fun = lambda smi: feature_function([smi])
+            data["Atom Attributions"] = data["smiles_std"].apply(lambda smiles: attribute_atoms(smiles, model, unvec_feature_fun))
+            data = normalize_atom_attributions(data, 'Atom Attributions')
+
 
     if not fast_run:
         #SHAP explainer
