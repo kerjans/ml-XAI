@@ -1,6 +1,7 @@
 import random
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
+import statistics
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -19,6 +20,7 @@ from chemprop.models import multi
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.model_selection import KFold
 
 import os
 from glob import glob
@@ -91,6 +93,11 @@ class SklChemprop:
         Parameters:
             df_input (pd.DataFrame): Contains SMILES and target columns.
         """
+        random.seed(6)
+        np.random.seed(6)
+        torch.manual_seed(6)
+        torch.use_deterministic_algorithms(True)
+
         df_input.reset_index(inplace=True)
         num_workers = 0 # number of workers for dataloader. 0 means using main process for data loading
         smiles_column = self.Smiles_Column_Name 
@@ -249,24 +256,56 @@ def train_GNN(train, Smiles_Column_Name, Target_Column_Name, working_dir):
             MAE (float): Mean absolute error.
             rmse (float): Root mean squared error.
     """
+    kf = KFold(n_splits=5, shuffle=True, random_state=42) 
+    splits_data = kf.split(train)
+
+    correlation_coeff = []
+    coef_of_determ = []
+    mean_AE = []
+    RMSE =[]
+
+    for train_fold, test_fold in splits_data:
+        train_data = train.iloc[train_fold]
+        test_data = train.iloc[test_fold]
+            
+        torch.manual_seed(6)
+        model_GNN = SklChemprop(problem_type="regression", max_epochs=50, Smiles_Column_Name=Smiles_Column_Name, Target_Column_Name=Target_Column_Name, working_dir=working_dir)
+        model_GNN.fit(train_data)
+            
+        prep_smiles = get_features(test_data, [Smiles_Column_Name])
+
+        predictions = model_GNN.predict(prep_smiles)
+        target_test = test_data[Target_Column_Name].values
+
+        #stats
+        r2 = np.corrcoef(target_test.flatten(), predictions.flatten())[0,1]**2
+        correlation_coeff.append(r2)
+        
+        RMSE_z = np.sqrt(np.mean((target_test.flatten() - predictions.flatten())**2))
+        RMSE_n = np.sqrt(np.mean((target_test.flatten() - np.mean(target_test.flatten()))**2))
+        R2 = 1 - RMSE_z**2/RMSE_n**2
+        coef_of_determ.append(R2)
+        
+        MAE = mean_absolute_error(target_test.flatten(), predictions.flatten())
+        mean_AE.append(MAE)
+        
+        mse = mean_squared_error(target_test.flatten(), predictions.flatten())
+        rmse = np.sqrt(mse)
+        RMSE.append(rmse)
+
+    mean_r2 = statistics.mean(correlation_coeff)
+    mean_R2 = statistics.mean(coef_of_determ)
+    mean_MAE = statistics.mean(mean_AE)
+    mean_RMSE = statistics.mean(RMSE)
+
+    #to get the model for the checkpointing
     torch.manual_seed(6)
     model_GNN = SklChemprop(problem_type="regression", max_epochs=50, Smiles_Column_Name=Smiles_Column_Name, Target_Column_Name=Target_Column_Name, working_dir=working_dir)
     model_GNN.fit(train)
-    
-    prep_smiles = get_features(train, [Smiles_Column_Name])
 
-    predictions = model_GNN.predict(prep_smiles)
-    target = train[Target_Column_Name].values
+    return mean_r2, mean_R2, mean_MAE, mean_RMSE
 
-    r2 = np.corrcoef(target.flatten(), predictions.flatten())[0,1]**2
-    RMSE_z = np.sqrt(np.mean((target.flatten() - predictions.flatten())**2))
-    RMSE_n = np.sqrt(np.mean((target.flatten() - np.mean(target.flatten()))**2))
-    R2 = 1 - RMSE_z**2/RMSE_n**2
-    MAE = mean_absolute_error(target.flatten(), predictions.flatten())
-    mse = mean_squared_error(target.flatten(), predictions.flatten())
-    rmse = np.sqrt(mse)
 
-    return r2, R2, MAE, rmse
 
 def identity(x):
     return x
