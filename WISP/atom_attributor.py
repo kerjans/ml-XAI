@@ -168,7 +168,7 @@ def attribute_atoms(smiles_list: "list[str]", model, featureMETHOD) -> np.array:
         attributions = np.zeros(mol.GetNumAtoms())
         for atm_idx in g_smi["atom_idx"].unique():
             g_smi_atom = g_smi[g_smi["atom_idx"] == atm_idx]
-            attributions[atm_idx] = g_smi_atom["y_diff"].mean()
+            attributions[atm_idx] += g_smi_atom["y_diff"].mean()
 
         attributions_all.append(attributions)
 
