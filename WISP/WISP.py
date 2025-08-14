@@ -167,9 +167,8 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
 
 
     with LogStep("Calc Atom Attributions"):
-        VECTORIZE_AA = False
+        VECTORIZE_AA = True
         if VECTORIZE_AA:
-            assert False
             from WISP.atom_attributor_vec import attribute_atoms
             data["Atom Attributions"] = attribute_atoms(data["smiles_std"].tolist(), model, feature_function)
             data = normalize_atom_attributions(data, 'Atom Attributions')
