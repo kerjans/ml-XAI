@@ -104,7 +104,7 @@ def mutate_atoms(smiles, mutation_subset=None):
                     new_atomic_num = Chem.GetPeriodicTable().GetAtomicNumber(replacement_symbol)
                     atom.SetAtomicNum(new_atomic_num)
 
-                    Chem.SanitizeMol(new_mol)
+                    Chem.SanitizeMol(new_mol) # ?
                     new_smiles = Chem.MolToSmiles(new_mol, isomericSmiles=True)
 
                 yield (atom_idx, original_symbol, replacement_symbol, new_smiles)
@@ -146,11 +146,13 @@ def attribute_atoms(smiles_list: "list[str]", model, featureMETHOD) -> np.array:
             })
 
     df_muts = pd.DataFrame(df_muts)
+    df_muts = df_muts[df_muts["smiles_mut"] != ""]
     
     df_pred = pd.DataFrame({"smiles": list(smiles_list)+df_muts.smiles_mut.tolist(),})
     df_pred['Feature'] = list(featureMETHOD(df_pred["smiles"]))
     prep_features = get_features(df_pred, ['Feature'])
     prediction = model.predict(prep_features)
+
     df_pred["y_pred"] = list(prediction)
     smi_to_pred = {row["smiles"]: row["y_pred"] for _,row in df_pred.iterrows()}
 
