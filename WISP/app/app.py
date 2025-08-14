@@ -571,8 +571,8 @@ class JobSubmissionHandler(BaseHandler):
                     df_new = df_new[~df_new["smiles"].apply(else_none(Chem.MolFromSmiles)).isna()]
                     df_new = df_new.sample(5000,random_state=123,)
 
-                print("WARNING: DOWNSAMPLE by 50%")
-                df_new = df_new.sample(frac=.5)
+                #print("WARNING: DOWNSAMPLE by 50%")
+                #df_new = df_new.sample(frac=.5)
 
                 id_col = "ID"
 
@@ -601,7 +601,7 @@ class JobSubmissionHandler(BaseHandler):
                     "ID_Column_Name":id_col,
                     "Smiles_Column_Name":"smiles",
                     "Target_Column_Name":"target",
-                    "use_GNN":False,
+                    "use_GNN":True,
                     "fast_run":True,
                     }
                 PROCESS_PARALLEL = True
