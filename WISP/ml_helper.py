@@ -1,4 +1,7 @@
+from WISP.log_step import suppress_output
 import numpy as np
+import seaborn as sns
+from standardizer.io import else_none
 np.seterr(divide='ignore', invalid='ignore')
 import pickle
 import shutil
@@ -10,6 +13,7 @@ from rdkit.Chem import AllChem
 from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 
 from sklearn.experimental import enable_halving_search_cv
+from sklearn.inspection import permutation_importance
 from sklearn.model_selection import KFold
 from sklearn.model_selection import HalvingRandomSearchCV
 from sklearn.preprocessing import StandardScaler
@@ -27,6 +31,8 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import Lasso
 from sklearn.svm import SVR
 
@@ -56,70 +62,106 @@ def get_features(data, COLUMNS):
     X = np.concatenate(features, axis=1)
     return X
 
-def get_morgan_fingerprint(smiles):
-    """
-    Calculates the Morgan Fingerprint (2028 bits, radius of 2) for the input smiles.
 
-    Keyword arguments:
-    -- smiles: Smiles for the which the fingerprint should be calculated.
+from rdkit import Chem
+from rdkit.ML.Descriptors import MoleculeDescriptors
 
-    Returns:
-    -- fingerprint: Morgan Fingerprint as array to the respective smiles.
-    """
-    mol = Chem.MolFromSmiles(smiles, sanitize=False)
-    Chem.SanitizeMol(mol)#to keep the explicit hydrogens
+def _clear_non_finite_values(array):
+    non_finite_mask = ~np.isfinite(array)
+    array[non_finite_mask] = 0
+    return array
+
+
+
+def get_descriptor_names():
+    return sorted(
+        [desc[0] for desc in Chem.Descriptors.descList]
+    )
+
+
+def get_mordred_descriptors(smiles_list):
     
-    if mol is not None:
-        generator = GetMorganGenerator(radius=2, fpSize=2048)
-        fingerprint = generator.GetFingerprint(mol)
-        fingerprint = fingerprint.ToBitString()
-        fingerprint = np.array(list(fingerprint))
-        return fingerprint
-    else:
-        return None
+    descriptor_calculator = MoleculeDescriptors.MolecularDescriptorCalculator(
+        [desc[0] for desc in Chem.Descriptors.descList]
+    )
 
-def get_MACCS_fingerprint(smiles):
-    """
-    Calculates the MCCS Keys Fingerprint for the input smiles.
+    descs = []
+    for smiles in smiles_list:
+        mol = Chem.MolFromSmiles(smiles)
+        
+        if mol is None:
+            descs.append(None)
+            continue
 
-    Keyword arguments:
-    -- smiles: Smiles for the which the fingerprint should be calculated.
 
-    Returns:
-    -- maccs_fp: MCCS Keys Fingerprint as array to the respective smiles.
-    """
-    mol = Chem.MolFromSmiles(smiles, sanitize=False)
-    Chem.SanitizeMol(mol)#to keep the explicit hydrogens
-    
-    if mol is not None:
-        maccs_fp = AllChem.GetMACCSKeysFingerprint(mol)
-        maccs_fp = maccs_fp.ToBitString()
-        maccs_fp = np.array(list(maccs_fp))
-        return maccs_fp
-    else:
-        return None
+        with suppress_output():
+            descriptors = descriptor_calculator.CalcDescriptors(mol)
+
+        descriptor_dict = {desc[0]: value for desc, value in zip(Chem.Descriptors.descList, descriptors)}
+        descs.append(descriptor_dict)
+
+    ks = set()
+    for desc in descs:
+        ks = ks.union(set(desc.keys()))
+
+    ks = sorted(ks)
+
+    float_or_none = else_none(float)
+    desc_vecs = []
+    for desc in descs:
+        this_vec = []
+        if desc:
+            for k in ks:
+                this_vec.append(float_or_none(desc.get(k,None)))
+            desc_vecs.append(this_vec)
+        else:
+            for k in ks:
+                this_vec.append(0) 
+
+    assert len(desc_vecs) == len(smiles_list)
+    return _clear_non_finite_values(np.array(desc_vecs))
+
+
+def get_morgan_fingerprint(smiles_list):
+    for smiles in smiles_list:
+        mol = Chem.MolFromSmiles(smiles, sanitize=False)
+        Chem.SanitizeMol(mol)#to keep the explicit hydrogens
+        
+        if mol is not None:
+            generator = GetMorganGenerator(radius=2, fpSize=2048)
+            fingerprint = generator.GetFingerprint(mol)
+            fingerprint = fingerprint.ToBitString()
+            fingerprint = np.array(list(fingerprint))
+            yield fingerprint
+        else:
+            yield None
+
+def get_MACCS_fingerprint(smiles_list):
+    for smiles in smiles_list:
+        mol = Chem.MolFromSmiles(smiles, sanitize=False)
+        Chem.SanitizeMol(mol)#to keep the explicit hydrogens
+        
+        if mol is not None:
+            maccs_fp = AllChem.GetMACCSKeysFingerprint(mol)
+            maccs_fp = maccs_fp.ToBitString()
+            maccs_fp = np.array(list(maccs_fp))
+            yield maccs_fp
+        else:
+            yield None
         
 
-def get_RDK_fingerprint(smiles):
-    """
-    Calculates the RDK Fingerprint (Maximal pathlenght of 7 and 2048 bits) for the input smiles.
-
-    Keyword arguments:
-    -- smiles: Smiles for the which the fingerprint should be calculated.
-
-    Returns:
-    -- rdkit_fp: RDK Fingerprint as array to the respective smiles.
-    """
-    mol = Chem.MolFromSmiles(smiles, sanitize=False)
-    Chem.SanitizeMol(mol)#to keep the explicit hydrogens
-    
-    if mol is not None:
-        rdkit_fp = AllChem.RDKFingerprint(mol, maxPath=7)
-        rdkit_fp = rdkit_fp.ToBitString()
-        rdkit_fp = np.array(list(rdkit_fp))
-        return rdkit_fp
-    else:
-        return None
+def get_RDK_fingerprint(smiles_list):
+    for smiles in smiles_list:
+        mol = Chem.MolFromSmiles(smiles, sanitize=False)
+        Chem.SanitizeMol(mol)#to keep the explicit hydrogens
+        
+        if mol is not None:
+            rdkit_fp = AllChem.RDKFingerprint(mol, maxPath=7)
+            rdkit_fp = rdkit_fp.ToBitString()
+            rdkit_fp = np.array(list(rdkit_fp))
+            yield rdkit_fp
+        else:
+            yield None
     
 def hp_search_helper(model, df_train, target,feature):
     """
@@ -155,6 +197,7 @@ def hp_search_helper(model, df_train, target,feature):
     
     'MLPClassifier': {'model__hidden_layer_sizes': [(50,), (100,), (50, 50)], 'model__activation': ['relu', 'tanh'], 'model__solver': ['adam'], 'model__alpha': [0.0001, 0.001, 0.01], 'model__learning_rate': ['constant', 'adaptive'], 'model__max_iter': [200, 500]},
     'GradientBoostingClassifier': {'model__n_estimators': [100, 300, 500], 'model__learning_rate': [0.01, 0.05, 0.1], 'model__max_depth': [3, 5, 7], 'model__subsample': [0.6, 0.8, 1.0], 'model__min_samples_split': [2, 5, 10]},
+    'HistGradientBoostingClassifier': {'model__learning_rate': [0.01, 0.05, 0.1],'model__max_depth': [3, 5, 7, None], 'model__random_state': [42]},
     'GaussianProcessClassifier': {'model__n_restarts_optimizer': [0, 2, 5], 'model__max_iter_predict': [100, 200], 'model__multi_class': ['one_vs_rest'], 'model__warm_start': [True, False]},
 
     'SVR': {'model__C': [0.1, 1, 10, 100], 'model__kernel': ['rbf'],  'model__gamma': ['scale', 'auto', 1, 0.001, 0.01, 0.1]},
@@ -164,6 +207,7 @@ def hp_search_helper(model, df_train, target,feature):
     'BayesianRidge': {'model__alpha_1': [1e-7, 1e-6, 1e-5],'model__alpha_2': [1e-7, 1e-6, 1e-5],'model__lambda_1': [1e-7, 1e-6, 1e-5],'model__lambda_2': [1e-7, 1e-6, 1e-5]},
     'Lasso': {'model__alpha': [0.001, 0.01, 0.1, 1.0, 10.0],'model__max_iter': [1000, 5000],'model__tol': [1e-4, 1e-3, 1e-2],'model__selection': ['cyclic', 'random'], 'model__random_state': [42]},
     'GradientBoostingRegressor': {'model__n_estimators': [100, 300, 500],'model__learning_rate': [0.01, 0.05, 0.1],'model__max_depth': [3, 5, 7],'model__subsample': [0.6, 0.8, 1.0],'model__min_samples_split': [2, 5, 10], 'model__random_state': [42]},
+    'HistGradientBoostingRegressor': {'model__learning_rate': [0.01, 0.05, 0.1],'model__max_depth': [3, 5, 7, None], 'model__random_state': [42]},
     'LinearRegression': {},
     'GaussianProcessRegressor': {'model__alpha': [1e-10, 1e-5, 1e-2],'model__n_restarts_optimizer': [0, 2, 5, 10],'model__normalize_y': [True, False]}
     }
@@ -173,6 +217,7 @@ def hp_search_helper(model, df_train, target,feature):
         'RandomForestClassifier': 'f1',
         'MLPClassifier': 'f1',
         'GradientBoostingClassifier': 'f1',
+        'HistGradientBoostingClassifier': 'f1',
         'GaussianProcessClassifier': 'f1',
         'RandomForestRegressor': "r2",
         'SVR': "r2",
@@ -180,6 +225,7 @@ def hp_search_helper(model, df_train, target,feature):
         'BayesianRidge': 'r2',
         'Lasso': 'r2',
         'GradientBoostingRegressor': 'r2',
+        'HistGradientBoostingRegressor': 'r2',
         'LinearRegression': 'r2',
         'GaussianProcessRegressor': 'r2'
     }
@@ -275,12 +321,16 @@ def features_and_reg_model_types(data,fast_run=False):
         model_types (list of sklearn estimators):
             A list of untrained regression model instances to try.
     """
-    data['Morgan_Fingerprint 2048Bit 2rad'] = data['smiles_std'].apply(get_morgan_fingerprint)
-    data['MACCS_Fingerprint'] = data['smiles_std'].apply(get_MACCS_fingerprint)
-    data['RDK_Fingerprint'] = data['smiles_std'].apply(get_RDK_fingerprint)
+    data['Morgan_Fingerprint 2048Bit 2rad'] = list(get_morgan_fingerprint(data['smiles_std']))
+    data['MACCS_Fingerprint'] = list(get_MACCS_fingerprint(data['smiles_std']))
+    data['RDK_Fingerprint'] = list(get_RDK_fingerprint(data['smiles_std']))
+    data['mordred'] = list(get_mordred_descriptors(data['smiles_std'].tolist()))
 
     if fast_run:
-        ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',]
+        ALLfeatureCOLUMNS = [
+            'Morgan_Fingerprint 2048Bit 2rad',
+            "mordred",
+            ]
     else:
         ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
             'RDK_Fingerprint',
@@ -288,7 +338,10 @@ def features_and_reg_model_types(data,fast_run=False):
     
         
     if fast_run:
-        model_types = [RandomForestRegressor(),]
+        model_types = [
+            #RandomForestRegressor(),
+             HistGradientBoostingRegressor(),
+             ]
     else:
         model_types = [MLPRegressor(), 
             BayesianRidge(), 
@@ -315,12 +368,15 @@ def features_and_class_model_types(data,fast_run=False,):
         feature_columns (list of str): Names of the added fingerprint columns.
         model_types (list): Unfitted classification model instances to try.
     """
-    data['Morgan_Fingerprint 2048Bit 2rad'] = data['smiles_std'].apply(get_morgan_fingerprint)
-    data['MACCS_Fingerprint'] = data['smiles_std'].apply(get_MACCS_fingerprint)
-    data['RDK_Fingerprint'] = data['smiles_std'].apply(get_RDK_fingerprint)
+    data['Morgan_Fingerprint 2048Bit 2rad'] = list(get_morgan_fingerprint(data['smiles_std']))
+    data['MACCS_Fingerprint'] = list(get_MACCS_fingerprint(data['smiles_std']))
+    data['RDK_Fingerprint'] = list(get_RDK_fingerprint(data['smiles_std']))
+    data['mordred'] = list(get_mordred_descriptors(data['smiles_std'].tolist()))
 
     if fast_run:
-        ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',]
+        ALLfeatureCOLUMNS = [
+            #'Morgan_Fingerprint 2048Bit 2rad',
+            "mordred"]
     else:
         ALLfeatureCOLUMNS = ['Morgan_Fingerprint 2048Bit 2rad',
             'RDK_Fingerprint',
@@ -328,7 +384,7 @@ def features_and_class_model_types(data,fast_run=False,):
         
     if fast_run:
         model_types = [
-            RandomForestClassifier(), 
+            RandomForestClassifier(),HistGradientBoostingClassifier(),
         ]
     else:
         model_types = [MLPClassifier(), 
@@ -379,6 +435,8 @@ def get_best_reg_model(model_types, ALLfeatureCOLUMNS, train, Target_Column_Name
     print('Feature: ', best_model_row['Feature'])
     results_df.to_csv(working_dir + "Grid-Search.csv", index=False)
 
+    _save_feature_importance_plot(results_df=results_df,train=train,Target_Column_Name=Target_Column_Name,working_dir=working_dir,)
+
     #delete checkpoints folder
     if model.__class__.__name__ != "SklChemprop":
         checkpoints_path = os.path.join(working_dir, 'checkpoints')
@@ -392,6 +450,8 @@ def get_best_reg_model(model_types, ALLfeatureCOLUMNS, train, Target_Column_Name
         feature_function = get_RDK_fingerprint
     if best_model_row['Feature'] == 'MACCS_Fingerprint':
         feature_function = get_MACCS_fingerprint
+    if best_model_row['Feature'] == 'mordred':
+        feature_function = get_mordred_descriptors
     if best_model_row['Feature'] == 'smiles_std':
         feature_function = identity
 
@@ -466,14 +526,14 @@ def get_and_train_class_model(train, test, Target_Column_Name, target_test, work
                 ('model',
                  ProbabilisticRandomForest(random_state=42))])
 
-    #train on whole training set
     prep_train = get_features(train, featureCOLUMNS)
     target_train = train[Target_Column_Name].values
     model.fit(prep_train, target_train)
 
-    #performance on test set
     prep_test = get_features(test, featureCOLUMNS)
     predictions = model.predict(prep_test)
+
+    _train_interp_model_and_save_plot(train=train,Target_Column_Name=Target_Column_Name,working_dir=working_dir,)
 
     #statistic on test set
     predicted_labels = (predictions >= 0.5).astype(int)
@@ -565,16 +625,18 @@ def add_predictions(data_MMPs, feature_function, model):
             - 'Feature_1' and 'predictions_1' for smiles_1
             - 'Feature_2' and 'predictions_2' for smiles_2
     """
-    data_MMPs['Feature_1'] = data_MMPs['smiles_1'].apply(feature_function)
+    data_MMPs['Feature_1'] = list(feature_function(data_MMPs['smiles_1']))
+    data_MMPs['Feature_2'] = list(feature_function(data_MMPs['smiles_2']))
+
+    data_MMPs = data_MMPs[(~data_MMPs["Feature_1"].isna()) & (~data_MMPs["Feature_2"].isna())]
     X_data_attributions_1 = get_features(data_MMPs, ['Feature_1'])
     predictions_1 = model.predict(X_data_attributions_1)
     data_MMPs['predictions_1'] = predictions_1
 
-    data_MMPs['Feature_2'] = data_MMPs['smiles_2'].apply(feature_function)
     X_data_attributions_2 = get_features(data_MMPs, ['Feature_2'])
     predictions_2 = model.predict(X_data_attributions_2)
     data_MMPs['predictions_2'] = predictions_2
-    
+
     return data_MMPs
 
 def split_MMPs_by_set(data_MMPs, test):
@@ -596,3 +658,96 @@ def split_MMPs_by_set(data_MMPs, test):
     test_set = data_MMPs[(data_MMPs['set_1'] == 'test') & (data_MMPs['set_2'] == 'test')]
 
     return train_set, test_set
+
+def _save_feature_importance_plot(results_df,train,Target_Column_Name,working_dir):
+    # Where feature importance is concerned, we can only interpret models that:
+    # are trained on molecular descriptors and the expose their feature_importance.
+    # Other models cannot be interpreted!
+    interpret_results = results_df[results_df["Feature"].apply(lambda f: "mordred" in str(f).lower())]
+    if len(interpret_results):
+        best_row = interpret_results.sort_values("R2").iloc[0]
+        best_mod = best_row["Model"]
+        best_feature = best_row["Feature"]
+
+        print("FEATURE IMPORTANCES:")
+        print("=="*40)
+        X = get_features(train,[best_feature])
+        y = train[Target_Column_Name]
+        result = permutation_importance(best_mod, X, y, n_repeats=10,
+                                        random_state=0)
+        #result.importances_mean
+        #result.importances_std
+        df_feature_imp = pd.DataFrame({
+            "feature_name": get_descriptor_names(),
+            "feature_idx": [i for i in range(len(get_descriptor_names()))],
+            "feature_importance": list(result.importances_mean),
+            "feature_importance_std": list(result.importances_std),
+        })
+        df_feature_imp = df_feature_imp.sort_values("feature_importance",ascending=False,)
+        print("feature_name","","feature_importance")
+
+        df_feature_imp_top = df_feature_imp.iloc[0:10]
+        for _,row in df_feature_imp_top.iterrows():
+            print(row["feature_name"],"",row["feature_importance"])
+
+        print("=="*40)
+
+        df_feature_imps_top_dist = pd.DataFrame(
+            [
+            {
+                "feature_importance": imp,
+                "feature_name": rw["feature_name"],
+            }
+                for _,rw in df_feature_imp_top.iterrows()
+                for imp in result.importances[rw["feature_idx"]]
+            ]
+        )
+
+        sns.violinplot(data=df_feature_imps_top_dist, x="feature_importance", y="feature_name",)
+        plt.tight_layout()
+        plt.savefig(Path(working_dir) / "feature_imp.svg")
+        plt.clf()
+
+
+def _train_interp_model_and_save_plot(train,Target_Column_Name,working_dir):
+    interp_model = Pipeline(steps=[('scaler', StandardScaler()),
+                ('model',
+                HistGradientBoostingClassifier(random_state=42))])
+
+    prep_train = get_features(train, ["mordred"])
+    target_train = train[Target_Column_Name].values
+    interp_model.fit(prep_train,target_train)
+    result = permutation_importance(interp_model, prep_train, target_train, n_repeats=10,
+                                    random_state=0)
+    #result.importances_mean
+    #result.importances_std
+    df_feature_imp = pd.DataFrame({
+        "feature_name": get_descriptor_names(),
+        "feature_idx": [i for i in range(len(get_descriptor_names()))],
+        "feature_importance": list(result.importances_mean),
+        "feature_importance_std": list(result.importances_std),
+    })
+    df_feature_imp = df_feature_imp.sort_values("feature_importance",ascending=False,)
+    print("feature_name","","feature_importance")
+
+    df_feature_imp_top = df_feature_imp.iloc[0:10]
+    for _,row in df_feature_imp_top.iterrows():
+        print(row["feature_name"],"",row["feature_importance"])
+
+    print("=="*40)
+
+    df_feature_imps_top_dist = pd.DataFrame(
+        [
+        {
+            "feature_importance": imp,
+            "feature_name": rw["feature_name"],
+        }
+            for _,rw in df_feature_imp_top.iterrows()
+            for imp in result.importances[rw["feature_idx"]]
+        ]
+    )
+
+    sns.violinplot(data=df_feature_imps_top_dist, x="feature_importance", y="feature_name",)
+    plt.tight_layout()
+    plt.savefig(Path(working_dir) / "feature_imp.svg")
+    plt.clf()

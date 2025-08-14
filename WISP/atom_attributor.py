@@ -2,6 +2,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdchem import PeriodicTable
 import numpy as np
+from standardizer.io import else_none
 np.seterr(divide='ignore', invalid='ignore')
 import pandas as pd
 
@@ -127,57 +128,51 @@ def predictor_on_smiles(smiles, featureMETHOD, model):
     """
     data_smiles = {'SMILES': [smiles]}
     df_smiles = pd.DataFrame(data_smiles)
-    df_smiles['Feature'] = df_smiles['SMILES'].apply(featureMETHOD)
+    df_smiles['Feature'] = list(featureMETHOD(df_smiles['SMILES'].tolist()))
     prep_features_smiles = get_features(df_smiles, ['Feature'])
     prediction = model.predict(prep_features_smiles)
     return prediction
 
 
-def attribute_atoms(smiles: str, model, featureMETHOD) -> np.array:
-    """
-    Compute per-atom attribution scores by single-atom substitutions.
+def attribute_atoms(smiles_list: "list[str]", model, featureMETHOD) -> np.array:
+    df_muts = [] # smiles_org, atom_idx, smiles_mut, feature, y_org, y_mut, y_diff
 
-    For each atom in the input SMILES:
-      1. Generate all valid single-atom replacements via `mutate_atoms()`.
-      2. Predict the original molecule’s output.
-      3. For each atom, mutate it in turn, predict the mutated molecules,
-         and compute the average Δprediction relative to the original.
-      4. Return a list of attribution scores, one per atom index.
+    for smiles in smiles_list:
+        for atom_idx, _, _, mutated in mutate_atoms(smiles):
+            df_muts.append({
+                "smiles_org": smiles,
+                "smiles_mut": mutated,
+                "atom_idx": atom_idx,
+            })
 
-    Parameters:
-        smiles (str): SMILES string of the molecule.
-        model: A fitted estimator with `.predict(X)` and compatible with `predictor_on_smiles`.
-        feature_method (callable): Function mapping a SMILES to its feature vector(s).
+    df_muts = pd.DataFrame(df_muts)
+    
+    df_pred = pd.DataFrame({"smiles": list(smiles_list)+df_muts.smiles_mut.tolist(),})
+    df_pred['Feature'] = list(featureMETHOD(df_pred["smiles"]))
+    prep_features = get_features(df_pred, ['Feature'])
+    prediction = model.predict(prep_features)
+    df_pred["y_pred"] = list(prediction)
+    smi_to_pred = {row["smiles"]: row["y_pred"] for _,row in df_pred.iterrows()}
 
-    Returns:
-        np.array: An array of attribution scores (floats), one per atom in the molecule.
+    df_muts["y_org"] = df_muts.smiles_org.map(smi_to_pred)
+    df_muts["y_mut"] = df_muts.smiles_mut.map(smi_to_pred)
+    df_muts["y_diff"] = df_muts["y_org"] - df_muts["y_mut"]
 
-    """
-    mutated_dict = {}
+    attributions_all = []
+    for smiles in smiles_list:
+        mol = Chem.MolFromSmiles(smiles, sanitize=False)
+        Chem.SanitizeMol(mol)  # to keep the explicit hydrogens
 
-    for atom_idx, _, _, mutated in mutate_atoms(smiles):
-        if atom_idx not in mutated_dict:
-            mutated_dict[atom_idx] = []
-        if mutated:
-            mutated_dict[atom_idx].append(mutated)
+        g_smi = df_muts[df_muts.smiles_org == smiles]
 
-    y_org = predictor_on_smiles(smiles, featureMETHOD, model)
-    attributions = []
-    for index in mutated_dict:
-        mutated_df = pd.DataFrame(mutated_dict[index])
-        if mutated_df.empty:#no mutations were generated
-            attributions.append(np.nan)
-        else:
-            mutated_df['Feature'] = mutated_df[0].apply(featureMETHOD)
-            prep_features_mutat = get_features(mutated_df, ['Feature'])
-            prediction = model.predict(prep_features_mutat)
-            y_diff = y_org - prediction
-            attributions.append(y_diff.mean())
+        attributions = np.zeros(mol.GetNumAtoms())
+        for atm_idx in g_smi["atom_idx"].unique():
+            g_smi_atom = g_smi[g_smi["atom_idx"] == atm_idx]
+            attributions[atm_idx] = g_smi_atom["y_diff"].mean()
 
-    mol = Chem.MolFromSmiles(smiles, sanitize=False)
-    Chem.SanitizeMol(mol)  # to keep the explicit hydrogens
-    assert len(attributions) == mol.GetNumAtoms()
-    return attributions
+        attributions_all.append(attributions)
+
+    return attributions_all
 
 if __name__ == "__main__":
     smiles_input = "CCO"  # Ethanol

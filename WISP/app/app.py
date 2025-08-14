@@ -1,6 +1,9 @@
 
 from io import StringIO
 import os
+# Silence any TQDM output as it is writing to stderr!!!!
+os.environ["TQDM_DISABLE"] = "True"
+
 from pathlib import Path
 import asyncio
 import json
@@ -10,7 +13,7 @@ import random
 import secrets
 import sys
 import time
-from standardizer.io import Silencer
+from standardizer.io import Silencer, else_none
 import tornado
 import tornado.ioloop
 import tornado.web
@@ -344,6 +347,71 @@ class WispOverviewPage(BaseHandler):
         self.write(resp)
 
 
+
+def styled_html_table(df, columns):
+    """
+    Generates a modern styled HTML table from a DataFrame and specified columns
+    with alternating row colors.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame.
+    columns (list): List of columns to include in the HTML table.
+
+    Returns:
+    str: A string containing the HTML representation of the table.
+    """
+    # Start the HTML table
+    html = '<table border="1" style="border-collapse: collapse; width: 100%;">\n'
+    
+    # Create the header row
+    html += '  <tr style="background-color: #1b3f90ff; color: white;">\n'
+    for column in columns:
+        html += f'    <th>{column}</th>\n'
+    html += '  </tr>\n'
+    
+    # Create the data rows with alternating colors
+    for index, row in df.iterrows():
+        row_color = '#ffffff' if index % 2 == 1 else "#5781e5ff"  # White and light blue
+        html += f'  <tr style="background-color: {row_color};">\n'
+        for column in columns:
+            html += f'    <td style="padding: 8px; border: 1px solid #ddd;">{row[column]}</td>\n'
+        html += '  </tr>\n'
+    
+    # End the HTML table
+    html += '</table>'
+    
+    return html
+
+class ModelPerfOverview(BaseHandler):
+
+    @tornado.web.authenticated
+    @log_function_call
+    def post(self):
+        req = json.loads(self.request.body)
+
+        job_id = req["job_id"]
+
+        here = Path(__file__).parent
+        working_dir = here / "working_dir" / f"{job_id}"
+        perf_overview = working_dir / "Grid-Search.csv"
+        df = pd.read_csv(perf_overview)
+        df = df[["Model_Type","Feature","r2","MAE","RMSE",]]
+        for col in ["r2","MAE","RMSE"]:
+            df[col] = df[col].apply(lambda val: "{:.2f}".format(val))
+
+        # split out any args e.g. "RandomForestClassifier()" => "RandomForestClassifier"
+        df["Model_Type"] = df["Model_Type"].apply(lambda n: n.split("(")[0])
+        df = df.sort_values("MAE")
+
+        resp = json.dumps(
+            {
+                "status": "success",
+                "model_perf_overview": styled_html_table(df,["Model_Type","Feature","r2","MAE","RMSE",]),
+            }
+        )
+        self.write(resp)
+
+
 class GuessColumnsHandler(BaseHandler):
 
     @tornado.web.authenticated
@@ -407,6 +475,30 @@ def run_wisp(args,metafle):
     metadat["log_err"] = log_err_fle.read_text()
     metafle.write_text(json.dumps(metadat))
     return
+
+class FeatureImportanceHandler(BaseHandler):
+
+    @tornado.web.authenticated
+    @log_function_call
+    def post(self):
+        req = json.loads(self.request.body)
+        job_id = req["job_id"]
+
+        here = Path(__file__).parent
+        working_dir = here / "working_dir" / f"{job_id}"
+
+        feature_imp_fle = working_dir / "feature_imp.svg"
+        feature_imp_fle.touch(exist_ok=True,)
+        svg_content = feature_imp_fle.read_text()
+
+        resp = json.dumps(
+            {
+                "status": "success",
+                "feature_importance_plot": svg_content
+            }
+        )
+        self.write(resp)
+
 
 
 class JobStatusHandler(BaseHandler):
@@ -474,6 +566,14 @@ class JobSubmissionHandler(BaseHandler):
                     {"smiles": smiles, "target": target,
                      "ID": [str(i) for i in range(len(smiles))]}
                     )
+                
+                if len(df_new) > 5000:
+                    df_new = df_new[~df_new["smiles"].apply(else_none(Chem.MolFromSmiles)).isna()]
+                    df_new = df_new.sample(5000,random_state=123,)
+
+                print("WARNING: DOWNSAMPLE by 50%")
+                df_new = df_new.sample(frac=.5)
+
                 id_col = "ID"
 
                 here = Path(__file__).parent
@@ -491,6 +591,7 @@ class JobSubmissionHandler(BaseHandler):
                 metafle.write_text(json.dumps(metadat))
 
                 input_fle = working_dir / f"input_{job_id}.csv"
+
                 df_new.to_csv(input_fle)
 
                 args = {
@@ -511,6 +612,7 @@ class JobSubmissionHandler(BaseHandler):
                         args, metafle
                     )
                 else:
+                    os.environ["_WISP_NO_PARALLEL"] = "True"
                     run_wisp(args,metafle)
 
 
@@ -543,6 +645,8 @@ async def main():
             (r"/HeatMaps", HeatMaps),
             (r"/WispOverviewPage", WispOverviewPage),
             (r"/MMPOverview", MMPOverview),
+            (r"/FeatureImportance", FeatureImportanceHandler),
+            (r"/ModelPerfOverview",ModelPerfOverview),
             (r"/wisp", MainHandler),
             (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": STATIC_FILE_DIR}),
             (r"/login", LoginHandler),
