@@ -127,8 +127,8 @@ def generator_to_list(func):
         return list(func(*args, **kwargs))
     return wrapper
 
-@generator_to_list
 def get_morgan_fingerprint(smiles_list):
+    rslt = []
     for smiles in smiles_list:
         mol = Chem.MolFromSmiles(smiles, sanitize=False)
         Chem.SanitizeMol(mol)#to keep the explicit hydrogens
@@ -138,12 +138,13 @@ def get_morgan_fingerprint(smiles_list):
             fingerprint = generator.GetFingerprint(mol)
             fingerprint = fingerprint.ToBitString()
             fingerprint = np.array(list(fingerprint))
-            yield fingerprint
+            rslt.append(fingerprint)
         else:
-            yield None
+            rslt.append(None)
+    return rslt
 
-@generator_to_list
 def get_MACCS_fingerprint(smiles_list):
+    rslt = []
     for smiles in smiles_list:
         mol = Chem.MolFromSmiles(smiles, sanitize=False)
         Chem.SanitizeMol(mol)#to keep the explicit hydrogens
@@ -152,13 +153,14 @@ def get_MACCS_fingerprint(smiles_list):
             maccs_fp = AllChem.GetMACCSKeysFingerprint(mol)
             maccs_fp = maccs_fp.ToBitString()
             maccs_fp = np.array(list(maccs_fp))
-            yield maccs_fp
+            rslt.append(maccs_fp)
         else:
-            yield None
+            rslt.append(None)
+    return rslt
         
 
-@generator_to_list
 def get_RDK_fingerprint(smiles_list):
+    rslt = []
     for smiles in smiles_list:
         mol = Chem.MolFromSmiles(smiles, sanitize=False)
         Chem.SanitizeMol(mol)#to keep the explicit hydrogens
@@ -167,9 +169,10 @@ def get_RDK_fingerprint(smiles_list):
             rdkit_fp = AllChem.RDKFingerprint(mol, maxPath=7)
             rdkit_fp = rdkit_fp.ToBitString()
             rdkit_fp = np.array(list(rdkit_fp))
-            yield rdkit_fp
+            rslt.append(rdkit_fp)
         else:
-            yield None
+            rslt.append(None)
+    return rslt
     
 def hp_search_helper(model, df_train, target,feature):
     """
