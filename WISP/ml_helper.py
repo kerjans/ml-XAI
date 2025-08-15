@@ -121,7 +121,13 @@ def get_mordred_descriptors(smiles_list):
     assert len(desc_vecs) == len(smiles_list)
     return _clear_non_finite_values(np.array(desc_vecs))
 
+def generator_to_list(func):
+    def wrapper(*args, **kwargs):
+        # Call the generator function and convert the generator to a list
+        return list(func(*args, **kwargs))
+    return wrapper
 
+@generator_to_list
 def get_morgan_fingerprint(smiles_list):
     for smiles in smiles_list:
         mol = Chem.MolFromSmiles(smiles, sanitize=False)
@@ -136,6 +142,7 @@ def get_morgan_fingerprint(smiles_list):
         else:
             yield None
 
+@generator_to_list
 def get_MACCS_fingerprint(smiles_list):
     for smiles in smiles_list:
         mol = Chem.MolFromSmiles(smiles, sanitize=False)
@@ -150,6 +157,7 @@ def get_MACCS_fingerprint(smiles_list):
             yield None
         
 
+@generator_to_list
 def get_RDK_fingerprint(smiles_list):
     for smiles in smiles_list:
         mol = Chem.MolFromSmiles(smiles, sanitize=False)
