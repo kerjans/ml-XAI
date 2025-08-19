@@ -370,12 +370,14 @@ def styled_html_table(df, columns):
     html += '  </tr>\n'
     
     # Create the data rows with alternating colors
-    for index, row in df.iterrows():
-        row_color = '#ffffff' if index % 2 == 1 else "#5781e5ff"  # White and light blue
+    row_count = 0
+    for _, row in df.iterrows():
+        row_color = '#ffffff' if row_count % 2 == 1 else "#5781e5ff"  # White and light blue
         html += f'  <tr style="background-color: {row_color};">\n'
         for column in columns:
             html += f'    <td style="padding: 8px; border: 1px solid #ddd;">{row[column]}</td>\n'
         html += '  </tr>\n'
+        row_count += 1
     
     # End the HTML table
     html += '</table>'
