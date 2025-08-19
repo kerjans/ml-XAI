@@ -412,6 +412,29 @@ class ModelPerfOverview(BaseHandler):
         self.write(resp)
 
 
+def _sniff_smiles_columns(df,):
+    smi_else_none = else_none(Chem.MolFromSmiles)
+    for col in sorted(df.columns):
+        col_score = 0
+        for smi in df[col].sample(10,random_state=123):
+            mol = smi_else_none(smi)
+            mol_score = mol is not None and bool(mol.GetNumAtoms())
+            col_score += mol_score
+        if col_score > 0:
+            yield col
+
+def _sniff_float_columns(df,):
+    float_else_none = else_none(float)
+    for col in sorted(df.columns):
+        col_score = 0
+        for smi in df[col].sample(10,random_state=123):
+            val = float_else_none(smi)
+            col_score += val is not None
+
+        if col_score > 0:
+            yield col
+
+
 class GuessColumnsHandler(BaseHandler):
 
     @tornado.web.authenticated
@@ -437,6 +460,9 @@ class GuessColumnsHandler(BaseHandler):
 
         resp = json.dumps(
             {
+                "all_columns": list(df.columns),
+                "all_smiles_columns": list(_sniff_smiles_columns(df)),
+                "all_float_columns": list(_sniff_float_columns(df)),
                 "smiles_col": smiles_col,
                 "target_col": target_col,
                 "status": "success",

@@ -37,18 +37,19 @@
                                 class="tooltip-text">Specify the name of this dataset</span></span></label>
                     <input type="text" id="name-column" placeholder="Enter name">
                 </div>
+
                 <div class="input-group"><label for="id-column">ID Column (optional)<span class="tooltip">️ℹ️<span
                                 class="tooltip-text">Specify the name of the column that contains unique
-                                identifiers.</span></span></label><input type="text" id="id-column"
-                        placeholder="Enter ID column name"></div>
+                                identifiers.</span></span></label><select id="id-column"
+                        placeholder="Enter ID column name"></select></div>
                 <div class="input-group"><label for="smiles-column">SMILES Column <span class="tooltip">️ℹ️<span
                                 class="tooltip-text">Specify the name of the column that contains SMILES
-                                representations.</span></span></label><input type="text" id="smiles-column"
-                        placeholder="Enter SMILES column name"></div>
+                                representations.</span></span></label><select id="smiles-column"
+                        placeholder="Enter SMILES column name"></select></div>
                 <div class="input-group"><label for="target-column">Target Column <span class="tooltip">ℹ️<span
                                 class="tooltip-text">Specify the name of the column that contains target
-                                variable.</span></span></label><input type="text" id="target-column"
-                        placeholder="Enter target column name"></div>
+                                variable.</span></span></label><select id="target-column"
+                        placeholder="Enter target column name"></select></div>
 
                 <button id="submit-button" class="primary-button" onclick="submitJob();">
                     Submit

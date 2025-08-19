@@ -42,8 +42,24 @@ const drop = function (evt) {
             const status = res["status"];
 
             if (status == "success") {
-                document.getElementById("smiles-column").value = res["smiles_col"];
-                document.getElementById("target-column").value = res["target_col"];
+
+                function populateSelect(elt, opts) {
+                    opts.forEach(
+                        col => {
+                            const option = document.createElement("option");
+                            option.value = col;
+                            option.text = col;
+                            elt.append(option);
+                        }
+                    );
+                }
+                const id_cols = res["all_columns"];
+                id_cols.unshift("");
+                populateSelect(document.getElementById("smiles-column"), res["all_smiles_columns"]);
+                populateSelect(document.getElementById("target-column"), res["all_float_columns"]);
+                populateSelect(document.getElementById("id-column"), id_cols);
+                //document.getElementById("smiles-column").value = res["smiles_col"];
+                //document.getElementById("target-column").value = res["target_col"];
                 var filename = file.name;
                 if (filename.includes("."))
                     filename = filename.split('.').slice(0, -1).join('.');

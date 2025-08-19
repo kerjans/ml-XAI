@@ -214,6 +214,10 @@ button:active:not(.collapsible) {
     color: #1b3f90ff;
 }
 
+select {
+    max-width: 150px;
+}
+
 .collapsible {
     /* classic trick :p */
     z-index: 10000;
