@@ -44,6 +44,10 @@ const drop = function (evt) {
             if (status == "success") {
                 document.getElementById("smiles-column").value = res["smiles_col"];
                 document.getElementById("target-column").value = res["target_col"];
+                var filename = file.name;
+                if (filename.includes("."))
+                    filename = filename.split('.').slice(0, -1).join('.');
+                document.getElementById("name-column").value = filename;
             }
 
             else {
@@ -63,17 +67,7 @@ const renderJobs = function () {
     const jobs = JSON.parse(localStorage.getItem("jobs"));
     jobs.forEach(
         function (job) {
-            const b = document.createElement("button");
-            b.classList.add("primary-button");
-            b.classList.add("job-buttons");
-            b.innerText = job;
-            b.onclick = function (args) {
-                Array.from(document.getElementsByClassName("job-buttons")).forEach(elt => elt.classList.remove("active-job-button"));
-                b.classList.add("active-job-button");
-                retrieveResults(job);
-            };
-            const bd = document.createElement("div");
-            bd.appendChild(b);
+
 
             fetch("JobStatus", {
                 method: "POST",
@@ -86,6 +80,25 @@ const renderJobs = function () {
 
             }).then(res => res.json()).then(res => {
                 console.log("Request complete! response:", res);
+
+                const b = document.createElement("button");
+                b.classList.add("primary-button");
+                b.classList.add("job-buttons");
+                const job_dte = job.split("__")[0];
+                const job_hsh = job.split("__")[1];
+                const job_nme = res["job_name"];
+                b.innerHTML = `
+                    <p style="display: inline; font-size: 70%; opacity: 90%;">${job_dte}</p>
+                    <p style="display: inline; font-size: 100%; font-weight: bold;">${job_nme}</p>
+                    <p style="display: inline; font-size: 20%; opacity: 50%;">${job_hsh}</p>
+                `;
+                b.onclick = function (args) {
+                    Array.from(document.getElementsByClassName("job-buttons")).forEach(elt => elt.classList.remove("active-job-button"));
+                    b.classList.add("active-job-button");
+                    retrieveResults(job);
+                };
+                const bd = document.createElement("div");
+                bd.appendChild(b);
 
                 const any_errors = res["log_err"].length > 0;
                 var status = null;
@@ -184,7 +197,8 @@ const submitJob = function () {
         body: JSON.stringify({
             "csv": CURRENT_DATA,
             "smiles_col": document.getElementById("smiles-column").value,
-            "target_col": document.getElementById("target-column").value
+            "target_col": document.getElementById("target-column").value,
+            "job_name": document.getElementById("name-column").value
         })
 
     }).then(res => res.json()).then(res => {

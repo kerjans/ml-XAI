@@ -526,6 +526,7 @@ class JobStatusHandler(BaseHandler):
         resp = json.dumps(
             {
                 "job_status": metadat["status"],
+                "job_name": metadat["job_name"],
                 "log_out": log_out_txt,
                 "log_err": log_err_txt,
             }
@@ -559,6 +560,7 @@ class JobSubmissionHandler(BaseHandler):
             if df is not None:
                 smiles_col = req["smiles_col"]
                 target_col = req["target_col"]
+                job_name = req["job_name"]
                 smiles = df[smiles_col].tolist()
                 target = df[target_col].tolist()
 
@@ -585,6 +587,7 @@ class JobSubmissionHandler(BaseHandler):
                 metadat = {
                             "smiles": smiles,
                             "target": target,
+                            "job_name": job_name,
                             "job_id": job_id,
                             "status": "running",
                         }

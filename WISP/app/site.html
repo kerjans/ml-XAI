@@ -16,7 +16,6 @@
     <div class="container">
         <div class="inner-div">
 
-
             <div class="left-column-min" id="left-column-min">
                 <div>
                     <img src="/static/logo_XAI_app.png" width="50px" style="transform: rotate(-90deg);">
@@ -34,15 +33,19 @@
                     <div ondrop="drop(event)" ondragover="allowDrop(event)" id="datasetSetting" class="fileDrop"><button
                             style="background-color: white;">Drop CSV here ↓ </button></div>
                 </div>
-                <div class="input-group"><label for="id-column">Specify ID Column <span class="tooltip">️ℹ️<span
+                <div class="input-group"><label for="name-column">Job Name<span class="tooltip">️ℹ️<span
+                                class="tooltip-text">Specify the name of this dataset</span></span></label>
+                    <input type="text" id="name-column" placeholder="Enter name">
+                </div>
+                <div class="input-group"><label for="id-column">ID Column (optional)<span class="tooltip">️ℹ️<span
                                 class="tooltip-text">Specify the name of the column that contains unique
                                 identifiers.</span></span></label><input type="text" id="id-column"
                         placeholder="Enter ID column name"></div>
-                <div class="input-group"><label for="smiles-column">Specify SMILES Column <span class="tooltip">️ℹ️<span
+                <div class="input-group"><label for="smiles-column">SMILES Column <span class="tooltip">️ℹ️<span
                                 class="tooltip-text">Specify the name of the column that contains SMILES
                                 representations.</span></span></label><input type="text" id="smiles-column"
                         placeholder="Enter SMILES column name"></div>
-                <div class="input-group"><label for="target-column">Specify Target Column <span class="tooltip">ℹ️<span
+                <div class="input-group"><label for="target-column">Target Column <span class="tooltip">ℹ️<span
                                 class="tooltip-text">Specify the name of the column that contains target
                                 variable.</span></span></label><input type="text" id="target-column"
                         placeholder="Enter target column name"></div>
