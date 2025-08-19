@@ -12,12 +12,28 @@ function allowDrop(ev) {
     ev.preventDefault();
 }
 
+const fileSub = function (evt) {
+    let input = document.createElement("input");
+    input.type = "file";
+    input.onchange = function (event) {
+        //
+        // console.log(this.files);
+
+        drop(event);
+    };
+    input.click();
+}
 
 CURRENT_DATA = [];
 const drop = function (evt) {
     window.my_event = evt;
     evt.preventDefault();
-    var file = evt.dataTransfer.files[0];
+    try {
+        var file = evt.dataTransfer.files[0];
+    } catch {
+        var file = evt.target.files[0];
+    }
+
     var reader = new FileReader();
 
     reader.onload = function (e) {
