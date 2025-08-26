@@ -5,6 +5,8 @@ from standardizer.io import else_none
 np.seterr(divide='ignore', invalid='ignore')
 import pickle
 import shutil
+from sklearn.metrics import ConfusionMatrixDisplay
+
 
 import chemprop
 
@@ -565,6 +567,15 @@ def get_and_train_class_model(train, test, Target_Column_Name, target_test, work
     print(f"Recall: {recall}")
     print(f"F1-score: {f1}")
     print("Confusion Matrix:\n", conf_matrix)
+
+    # Create a confusion matrix display
+    disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=[0, 1])
+
+    # Plot the confusion matrix
+    disp.plot(cmap=plt.cm.Blues)
+    plt.title('Confusion Matrix')
+    plt.savefig(working_dir + '20-80-split-true-pred.png')
+    plt.clf()
 
     pickle.dump(model, open(working_dir + "model.pkl", "wb"))
 
