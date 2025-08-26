@@ -374,7 +374,7 @@ const refreshFirstPage = function () {
     var tab = document.createElement("div");
     tab.style.display = "table";
     // clear the current results
-    document.getElementById("result-div").innerHTML = "";
+    document.getElementById("result-div-6").innerHTML = "";
 
     // First Row: Showing the parity plots
     var cp = document.createElement("div");
@@ -427,6 +427,15 @@ const refreshFirstPage = function () {
     const cp2 = document.createElement("div");
     cp2.style.display = "table-row";
 
+    tab.append(cp);
+    tab.append(cp2);
+
+    document.getElementById("result-div-6").appendChild(tab);
+
+    // test performance
+    var tab = document.createElement("div");
+    tab.style.display = "table";
+    document.getElementById("result-div").innerHTML = "";
 
     const pred_test_div = document.createElement("div");
     const pred_test_label = document.createElement("div");
@@ -442,11 +451,7 @@ const refreshFirstPage = function () {
     pred_test_div.style.display = "inline";
     pred_test_div.style.display = "table-cell";
     pred_test_div.style.width = "350px";
-    cp2.appendChild(pred_test_div);
-
-
-    tab.append(cp);
-    tab.append(cp2);
+    tab.appendChild(pred_test_div);
 
     document.getElementById("result-div").appendChild(tab);
 };
@@ -596,7 +601,7 @@ window.onload = () => {
     coll = document.getElementsByClassName("collapsiblex");
     i = 0;
 
-    const contents = { "Jobs": "job-id-div", "Models": "result-div-5", "Evaluation": "result-div", "Atom Contributions": "result-div-2", "MMP Overview": "result-div-3", "Feature Importance": "result-div-4" }
+    const contents = { "Jobs": "job-id-div", "Models": "result-div-5", "WISP": "result-div-6", "Evaluation": "result-div", "Atom Contributions": "result-div-2", "MMP Overview": "result-div-3", "Feature Importance": "result-div-4" }
     for (i = 0; i < coll.length; i++) {
         const elt = coll[i];
         const clicked_on = elt.innerText;

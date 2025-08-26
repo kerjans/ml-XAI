@@ -598,11 +598,12 @@ class JobSubmissionHandler(BaseHandler):
                     )
                 
                 if len(df_new) > 5000:
+                    print("WARNING: DOWNSAMPLE data to 5000 entries")
                     df_new = df_new[~df_new["smiles"].apply(else_none(Chem.MolFromSmiles)).isna()]
                     df_new = df_new.sample(5000,random_state=123,)
 
-                #print("WARNING: DOWNSAMPLE by 50%")
-                #df_new = df_new.sample(frac=.5)
+                print("WARNING: DOWNSAMPLE by 50%")
+                df_new = df_new.sample(frac=.5)
 
                 id_col = "ID"
 
