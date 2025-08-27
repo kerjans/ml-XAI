@@ -156,6 +156,18 @@ class TermsOfUseHandler(BaseHandler):
     def get(self):
         self.write(self.read())
 
+ABOUT = HERE / "about.txt"
+class AboutHandler(BaseHandler):
+    @log_function_call
+    def read(self):
+        txt = ABOUT.read_text()
+        page = f"<html><body><pre>{txt}</pre></body></html>"
+        return page
+
+    @log_function_call
+    def get(self):
+        self.write(self.read())
+
 # The LandingPageHandler displays the initial landing web page
 LANDING_PAGE = HERE / "landing_page.svg"
 class LandingPageHandler(BaseHandler):
@@ -671,6 +683,7 @@ async def main():
         [
             (r"/", LandingPageHandler),
             (r"/terms_of_use", TermsOfUseHandler),
+            (r"/about", AboutHandler),
             (r"/JobSubmission", JobSubmissionHandler),
             (r"/JobStatus", JobStatusHandler),
             (r"/GuessColumnsHandler", GuessColumnsHandler),
