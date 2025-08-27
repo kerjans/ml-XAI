@@ -28,6 +28,17 @@ User Responsibility: Users are responsible for verifying
 the accuracy and appropriateness of any information or results
 obtained from our website before using them for any purpose.
 
+Data Processing:
+We process and store the data you provide locally to deliver
+our service. While we make every effort to keep
+your data private and secure, we cannot guarantee absolute
+security or confidentiality. By using our services,
+you acknowledge and accept the inherent risks
+associated with data transmission and storage.
+
+Cookies:
+We use cookies for technical purposes only (authentication and captcha challenges).
+
 Modification of Terms:
 We reserve the right to modify these Terms of Use at any time.
 Continued use of the website after any changes constitutes acceptance of the new terms.
