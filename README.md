@@ -46,6 +46,7 @@ Or, if you want to clone the repository for development:
 git clone https://github.com/kerjans/ml-XAI.git
 cd ml-XAI
 pip install -e .
+git checkout code-paper-version-1
 ```
 
 # Usage
