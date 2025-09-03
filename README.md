@@ -71,7 +71,7 @@ Please acknowledge this work by citing the following if you use the package:
 [When Machine Learning Models Learn Chemistry I: Quantifying Explainability with Matched Molecular Pairs]():
 ```
 @misc{jans2025wisp1,
-      title={regAL: Python Package for Active Learning of Regression Problems}, 
+      title={When Machine Learning Models Learn Chemistry I: Quantifying Explainability with Matched Molecular Pairs}, 
       author={Kerrin Janssen, Jan M. Wollschläger, Jonny Proppe and Andreas H. Göller},
       year={2025},
       eprint={},
@@ -83,7 +83,7 @@ Please acknowledge this work by citing the following if you use the package:
 [When Machine Learning Models Learn Chemistry II: Applying WISP to Real-World Examples]():
 ```
 @misc{jans2025wisp2,
-      title={regAL: Python Package for Active Learning of Regression Problems}, 
+      title={When Machine Learning Models Learn Chemistry II: Applying WISP to Real-World Examples}, 
       author={Kerrin Janssen, Jan M. Wollschläger, Jonny Proppe and Andreas H. Göller},
       year={2025},
       eprint={},
