@@ -51,7 +51,7 @@ pip install -e .
 # Usage
 
 We have provided different [notebooks](https://github.com/kerjans/ml-XAI/tree/main/notebooks) to:
-* [Reproducte the puplications]()
+* [Reproduce the publications]()
 * See how [WISP is being used]() and
 * Explore how the [atom attributor is used]() as a standalone tool.
 
