@@ -52,9 +52,9 @@ git checkout code-paper-version-1
 # Usage
 
 We have provided different [notebooks](https://github.com/kerjans/ml-XAI/tree/main/notebooks) to:
-* [Reproduce the publications]()
-* See how [WISP is being used]() and
-* Explore how the [atom attributor is used]() as a standalone tool.
+* [Reproduce the publications](https://github.com/kerjans/ml-XAI/blob/main/notebooks/Reproduce-Paper.ipynb)
+* See how [WISP is being used](https://github.com/kerjans/ml-XAI/blob/main/notebooks/examples_wisp.ipynb) and
+* Explore how the [atom attributor is used](https://github.com/kerjans/ml-XAI/blob/main/notebooks/examples_atom_attributor.ipynb) as a standalone tool.
 
 In general, you can execute WISP by simply plugging in your dataset of interest:
 ```python
