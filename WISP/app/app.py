@@ -645,7 +645,7 @@ class JobSubmissionHandler(BaseHandler):
                     "ID_Column_Name":id_col,
                     "Smiles_Column_Name":"smiles",
                     "Target_Column_Name":"target",
-                    "use_GNN":True,
+                    "use_GNN":False, # deactivate GNN for now for speed
                     "fast_run":True,
                     }
                 PROCESS_PARALLEL = True

@@ -341,9 +341,9 @@ def features_and_reg_model_types(data,fast_run=False):
 
     if fast_run:
         ALLfeatureCOLUMNS = [
-            'Morgan_Fingerprint 2048Bit 2rad',
+            #'Morgan_Fingerprint 2048Bit 2rad',
             'RDK_Fingerprint',
-            'MACCS_Fingerprint',
+            #'MACCS_Fingerprint',
             "mordred",
             ]
     else:
@@ -356,7 +356,7 @@ def features_and_reg_model_types(data,fast_run=False):
         
     if fast_run:
         model_types = [
-             RandomForestRegressor(),
+             #RandomForestRegressor(),
              HistGradientBoostingRegressor(),
              ]
     else:
