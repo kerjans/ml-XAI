@@ -53,7 +53,7 @@ def plot_2D(LEGEND, placeLegend, Xaxes, Yaxes, Xlabel, Ylabel, SAVEDIR, color, h
     Returns:
         None  (saves the figure to `SAVEDIR` and optionally displays it)
     """
-    plt.rcParams['font.family'] = 'arial'
+    #plt.rcParams['font.family'] = 'arial'
     plt.plot(Xaxes, Yaxes, '.', color=color, markersize=10, linestyle=line_style, alpha=0.5)
     plt.xlabel(Xlabel, fontsize=18)
     plt.ylabel(Ylabel, fontsize=18)
@@ -98,7 +98,7 @@ def plot_histogram(dataset1, dataset2, column_of_interest, x_Label, y_Label, dat
     dataset1_counts, _ = np.histogram(dataset1[column_of_interest], bins=bins)
     dataset2_counts, _ = np.histogram(dataset2[column_of_interest], bins=bins)
 
-    plt.rcParams['font.family'] = 'arial'
+    #plt.rcParams['font.family'] = 'arial'
     bar_width = 0.4  # Width of the bars
     plt.bar(bins[:-1] - bar_width / 2, dataset1_counts, width=bar_width, label=dataset1_name, align='center', color='#A43341')
     plt.bar(bins[:-1] + bar_width / 2, dataset2_counts, width=bar_width, label=dataset2_name, align='center', color='#b2b2b2')
@@ -152,7 +152,7 @@ def plot_histogram_one_dataset(data, column_of_interest, label, color, attr_meth
     else:
         header = "plot"
 
-    plt.rcParams['font.family'] = 'arial'
+    #plt.rcParams['font.family'] = 'arial'
     plt.xlabel(label, fontsize=18)
     plt.ylabel('MMP Count', fontsize=18)
     plt.legend(fontsize=16, loc='upper left')
