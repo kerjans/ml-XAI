@@ -142,6 +142,9 @@ def attribute_atoms(smiles_list: "list[str]", model, featureMETHOD, chunk_size=2
         if len(chnk):
             rslt = rslt.extend(_attribute_atoms_chunk(chnk,model,featureMETHOD))
 
+    assert len(rslt) == len(smiles_list)
+    return rslt
+
 def _attribute_atoms_chunk(smiles_list: "list[str]", model, featureMETHOD) -> np.array:
     df_muts = [] # smiles_org, atom_idx, smiles_mut, feature, y_org, y_mut, y_diff
 
