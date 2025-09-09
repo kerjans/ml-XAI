@@ -133,8 +133,16 @@ def predictor_on_smiles(smiles, featureMETHOD, model):
     prediction = model.predict(prep_features_smiles)
     return prediction
 
+def attribute_atoms(smiles_list: "list[str]", model, featureMETHOD, chunk_size=256,) -> np.array:
+    rslt = []
+    chnks = list(range(0,len(smiles_list),chunk_size))
+    for i in chnks:
+        print(f"processing chunk: {i} / {len(chnks)}")
+        chnk = smiles_list[i:i+chunk_size]
+        if len(chnk):
+            rslt = rslt.extend(_attribute_atoms_chunk(chnk,model,featureMETHOD))
 
-def attribute_atoms(smiles_list: "list[str]", model, featureMETHOD) -> np.array:
+def _attribute_atoms_chunk(smiles_list: "list[str]", model, featureMETHOD) -> np.array:
     df_muts = [] # smiles_org, atom_idx, smiles_mut, feature, y_org, y_mut, y_diff
 
     for smiles in smiles_list:
