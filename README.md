@@ -6,8 +6,8 @@
 <be>
 
 WISP enables the quantitative evaluation of explainability methods applied to machine learning models. Details of the workflow are described in the following papers:
-* [When Machine Learning Models Learn Chemistry I: Quantifying Explainability with Matched Molecular Pairs]()
-* [When Machine Learning Models Learn Chemistry II: Applying WISP to Real-World Examples]()
+* [When Machine Learning Models Learn Chemistry I: Quantifying Explainability with Matched Molecular Pairs](https://chemrxiv.org/engage/chemrxiv/article-details/68bb32e8a94eede154ec9488)
+* [When Machine Learning Models Learn Chemistry II: Applying WISP to Real-World Examples](https://chemrxiv.org/engage/chemrxiv/article-details/68bb381ea94eede154ed44f8)
 
 **Try out WISP in your browser — no installation required:**
 
@@ -69,28 +69,24 @@ wisp = WISP('working-dir-path',
 # Citations
 Please acknowledge this work by citing the following if you use the package:
 
-[When Machine Learning Models Learn Chemistry I: Quantifying Explainability with Matched Molecular Pairs]():
+[When Machine Learning Models Learn Chemistry I: Quantifying Explainability with Matched Molecular Pairs](https://chemrxiv.org/engage/chemrxiv/article-details/68bb32e8a94eede154ec9488):
 ```
 @misc{jans2025wisp1,
       title={When Machine Learning Models Learn Chemistry I: Quantifying Explainability with Matched Molecular Pairs}, 
       author={Kerrin Janssen, Jan M. Wollschläger, Jonny Proppe and Andreas H. Göller},
       year={2025},
-      eprint={},
-      archivePrefix={},
-      primaryClass={},
-      url={}, 
+      archivePrefix={ChemRxiv},
+      url={https://doi.org/10.26434/chemrxiv-2025-d57kp}, 
 }
 ```
-[When Machine Learning Models Learn Chemistry II: Applying WISP to Real-World Examples]():
+[When Machine Learning Models Learn Chemistry II: Applying WISP to Real-World Examples](https://chemrxiv.org/engage/chemrxiv/article-details/68bb381ea94eede154ed44f8):
 ```
 @misc{jans2025wisp2,
       title={When Machine Learning Models Learn Chemistry II: Applying WISP to Real-World Examples}, 
       author={Kerrin Janssen, Jan M. Wollschläger, Jonny Proppe and Andreas H. Göller},
       year={2025},
-      eprint={},
-      archivePrefix={},
-      primaryClass={},
-      url={}, 
+      archivePrefix={ChemRxiv},
+      url={https://doi.org/10.26434/chemrxiv-2025-zdqgr}, 
 }
 ```
 
