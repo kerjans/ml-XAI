@@ -140,7 +140,7 @@ def attribute_atoms(smiles_list: "list[str]", model, featureMETHOD, chunk_size=2
         print(f"processing chunk: {i} / {len(chnks)}")
         chnk = smiles_list[i:i+chunk_size]
         if len(chnk):
-            rslt = rslt.extend(_attribute_atoms_chunk(chnk,model,featureMETHOD))
+            rslt.extend(_attribute_atoms_chunk(chnk,model,featureMETHOD))
 
     assert len(rslt) == len(smiles_list)
     return rslt
