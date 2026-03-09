@@ -621,7 +621,7 @@ class JobSubmissionHandler(BaseHandler):
                 df = _load_sdf_block(inp)
             else:
                 csv = StringIO(inp)
-                df = resilient_read_csv(csv,nrows=30)
+                df = resilient_read_csv(csv,)
 
             if df is not None:
                 smiles_col = req["smiles_col"]
