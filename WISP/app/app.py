@@ -449,19 +449,41 @@ def _sniff_float_columns(df,):
             yield col
 
 
+def _is_sdf_file(s):
+    lnes = [lne.strip() for lne in s.split("\n")]
+    return "$$$" in lnes or "$$$$" in lnes
+
+import uuid
+def _load_sdf_block(sdf_block):
+    from rdkit.Chem import PandasTools
+    tmp_fle = Path(f"/tmp/{uuid.uuid1().hex}.sdf")
+    tmp_fle.write_text(sdf_block)
+    df = None
+    try:
+        df = PandasTools.LoadSDF(tmp_fle)
+        df["smiles"] = df["ROMol"].apply(else_none(Chem.MolToSmiles))
+        df = df[~df.smiles.isna()]
+        df = df.drop(columns=["ROMol",],)
+    finally:
+        tmp_fle.unlink()
+    return df
+
 class GuessColumnsHandler(BaseHandler):
 
     @tornado.web.authenticated
     @log_function_call
     def post(self):
-
         smiles_col = None
         target_col = None
+        df = None
         try:
             req = json.loads(self.request.body)
-            print("req:",req)
-            csv = StringIO(req["csv"][0])
-            df = resilient_read_csv(csv,nrows=30,)
+            inp = req["input_file"][0]
+            if _is_sdf_file(inp):
+                df = _load_sdf_block(inp)
+            else:
+                csv = StringIO(inp)
+                df = resilient_read_csv(csv,nrows=30)
             for col in df.columns:
                 if "smi" in col.lower():
                     smiles_col = col
@@ -593,9 +615,13 @@ class JobSubmissionHandler(BaseHandler):
 
         try:
             req = json.loads(self.request.body)
-            print("req:",req)
-            csv = StringIO(req["csv"][0])
-            df = resilient_read_csv(csv)
+            df = None
+            inp = req["input_file"][0]
+            if _is_sdf_file(inp):
+                df = _load_sdf_block(inp)
+            else:
+                csv = StringIO(inp)
+                df = resilient_read_csv(csv,nrows=30)
 
             if df is not None:
                 smiles_col = req["smiles_col"]
