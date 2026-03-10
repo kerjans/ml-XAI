@@ -108,6 +108,7 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
 
     #load Data
     data = pd.read_csv(input_dir)
+    data = data.sample(500)
     data.rename(columns={ID_Column_Name: 'ID'}, inplace=True)
 
     #set type
