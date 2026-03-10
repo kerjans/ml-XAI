@@ -615,6 +615,8 @@ class JobSubmissionHandler(BaseHandler):
 
         try:
             req = json.loads(self.request.body)
+            print("skip_aa",req["skip_aa"])
+            skip_aa = req["skip_aa"]
             df = None
             inp = req["input_file"][0]
             if _is_sdf_file(inp):
@@ -673,6 +675,7 @@ class JobSubmissionHandler(BaseHandler):
                     "Target_Column_Name":"target",
                     "use_GNN":False, # deactivate GNN for now for speed
                     "fast_run":True,
+                    "skip_aa": skip_aa,
                     }
                 PROCESS_PARALLEL = True
                 if PROCESS_PARALLEL:

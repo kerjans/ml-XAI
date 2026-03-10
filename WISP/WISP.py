@@ -77,7 +77,7 @@ def normalize_atom_attributions(data, input_col):
 
 
 
-def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Column_Name, model_available=None, use_GNN=True, fast_run=False,):
+def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Column_Name, model_available=None, use_GNN=True, fast_run=False, skip_aa=False,):
     """
     Executes the main WISP workflow: Load data, standardize SMILES, train or load a model, compute atom‐level attributions,
     generate heatmaps and matched‐molecular‐pair (MMP) analyses, then return the MMP DataFrame as well as the analyses plots.
@@ -165,21 +165,28 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
     color_coding =['#10384f']
 
 
-    with LogStep("Calc Atom Attributions"):
-        VECTORIZE_AA = True
-        if VECTORIZE_AA:
-            from WISP.atom_attributor_vec import attribute_atoms
-            data["Atom Attributions"] = attribute_atoms(data["smiles_std"].tolist(), model, feature_function)
-            data = normalize_atom_attributions(data, 'Atom Attributions')
-        else:
-            from WISP.atom_attributor import attribute_atoms
-            if "identity" in feature_function.__name__:
-                unvec_feature_fun = feature_function
+    if skip_aa:
+        with LogStep("Skipping Atom Attributions"):
+            data["Atom Attributions"] = \
+                data["smiles_std"].apply(
+                    Chem.MolFromSmiles).apply(
+                        lambda mol: np.zeros(mol.GetNumAtoms())
+                    )
+    else:
+        with LogStep("Calc Atom Attributions"):
+            VECTORIZE_AA = True
+            if VECTORIZE_AA:
+                from WISP.atom_attributor_vec import attribute_atoms
+                data["Atom Attributions"] = attribute_atoms(data["smiles_std"].tolist(), model, feature_function)
+                data = normalize_atom_attributions(data, 'Atom Attributions')
             else:
-                unvec_feature_fun = lambda smi: feature_function([smi])
-            data["Atom Attributions"] = data["smiles_std"].apply(lambda smiles: attribute_atoms(smiles, model, unvec_feature_fun))
-            data = normalize_atom_attributions(data, 'Atom Attributions')
-
+                from WISP.atom_attributor import attribute_atoms
+                if "identity" in feature_function.__name__:
+                    unvec_feature_fun = feature_function
+                else:
+                    unvec_feature_fun = lambda smi: feature_function([smi])
+                data["Atom Attributions"] = data["smiles_std"].apply(lambda smiles: attribute_atoms(smiles, model, unvec_feature_fun))
+                data = normalize_atom_attributions(data, 'Atom Attributions')
 
     if not fast_run:
         #SHAP explainer
@@ -219,11 +226,12 @@ def WISP(working_dir, input_dir, ID_Column_Name, Smiles_Column_Name, Target_Colu
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    with LogStep("Generating Heatmaps"):
-        for index, row in data.iterrows():
-            for attr_method in Attribution_Columns:
-                output_dir = directory + '/'
-                generate_heatmap(data, index, output_dir, 'smiles_std', attr_method, 'ID', task_type)
+    if not skip_aa:
+        with LogStep("Generating Heatmaps"):
+            for index, row in data.iterrows():
+                for attr_method in Attribution_Columns:
+                    output_dir = directory + '/'
+                    generate_heatmap(data, index, output_dir, 'smiles_std', attr_method, 'ID', task_type)
 
     with LogStep("Creating MMPs"):
         columns_to_keep = Attribution_Columns + [Target_Column_Name]
