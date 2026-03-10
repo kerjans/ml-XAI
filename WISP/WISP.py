@@ -7,8 +7,7 @@ import contextlib
 
 import warnings
 
-warnings.filterwarnings("ignore", module="lightning.pytorch")
-warnings.filterwarnings("ignore", module="sklearn")
+warnings.filterwarnings("ignore")
 
 
 from WISP.log_step import LogStep, suppress_output
