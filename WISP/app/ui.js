@@ -230,7 +230,8 @@ const submitJob = function () {
             "input_file": CURRENT_DATA,
             "smiles_col": document.getElementById("smiles-column").value,
             "target_col": document.getElementById("target-column").value,
-            "job_name": document.getElementById("name-column").value
+            "job_name": document.getElementById("name-column").value,
+            "skip_aa": document.getElementById("skip_aa").checked
         })
 
     }).then(res => res.json()).then(res => {
